@@ -1,99 +1,91 @@
-// Basic utilities wrapped in DOMContentLoaded
+// Willex OS website interactions
 document.addEventListener('DOMContentLoaded', () => {
-  // YEAR IN FOOTER
-  const yearEl = document.getElementById('year');
-  if (yearEl) {
-    yearEl.textContent = new Date().getFullYear();
+  // --- Year in footer ---
+  const yearSpan = document.getElementById('year');
+  if (yearSpan) {
+    yearSpan.textContent = new Date().getFullYear();
   }
 
-  // MOBILE MENU TOGGLE
-  const hamburger = document.querySelector('.hamburger');
+  // --- Scroll reveal animations ---
+  const observer = new IntersectionObserver((entries, obs) => {
+    entries.forEach(entry => {
+      if (entry.isIntersecting) {
+        entry.target.classList.add('show');
+        obs.unobserve(entry.target);
+      }
+    });
+  }, { threshold: 0.16 });
+
+  document.querySelectorAll('.reveal, .card').forEach(el => observer.observe(el));
+
+  // --- Mobile menu toggle (logo + text on phones) ---
   const mobileMenu = document.getElementById('mobileMenu');
+  const brand = document.querySelector('.brand');
+  const hamburger = document.querySelector('.hamburger');
 
+  function toggleMenu() {
+    if (!mobileMenu) return;
+    mobileMenu.classList.toggle('open');
+  }
+
+  // hamburger button
   if (hamburger && mobileMenu) {
-    hamburger.addEventListener('click', () => {
-      const isOpen = mobileMenu.classList.toggle('open');
-      hamburger.classList.toggle('open', isOpen);
-    });
-
-    // Close menu when clicking a link
-    mobileMenu.querySelectorAll('a').forEach(link => {
-      link.addEventListener('click', () => {
-        mobileMenu.classList.remove('open');
-        hamburger.classList.remove('open');
-      });
-    });
+    hamburger.addEventListener('click', toggleMenu);
   }
 
-  // STICKY HEADER SHRINK ON SCROLL
-  const header = document.querySelector('.nav-header');
-  const onScroll = () => {
-    if (!header) return;
-    const scrolled = window.scrollY > 10;
-    header.classList.toggle('scrolled', scrolled);
-  };
-  window.addEventListener('scroll', onScroll);
-  onScroll(); // initial
-
-  // ACTIVE NAV LINK BASED ON PAGE
-  const page = document.body.dataset.page;
-  if (page) {
-    document
-      .querySelectorAll('.desktop-nav a[data-page]')
-      .forEach(link => {
-        const lp = link.getAttribute('data-page');
-        if (lp === page) {
-          link.classList.add('is-active');
-        }
-      });
-  }
-
-  // SCROLL REVEAL
-  const revealEls = document.querySelectorAll('.reveal, .card');
-  if ('IntersectionObserver' in window && revealEls.length) {
-    const observer = new IntersectionObserver((entries, obs) => {
-      entries.forEach(entry => {
-        if (entry.isIntersecting) {
-          entry.target.classList.add('show');
-          obs.unobserve(entry.target);
-        }
-      });
-    }, { threshold: 0.18 });
-
-    revealEls.forEach(el => observer.observe(el));
-  } else {
-    // Fallback: show all
-    revealEls.forEach(el => el.classList.add('show'));
-  }
-
-  // FLOATING SUPPORT BUTTON
-  const fab = document.querySelector('.support-fab');
-  const panel = document.querySelector('.support-panel');
-
-  if (fab && panel) {
-    fab.addEventListener('click', () => {
-      const open = !panel.classList.contains('open');
-      panel.classList.toggle('open', open);
-      panel.setAttribute('aria-hidden', String(!open));
-    });
-
-    // Click outside to close
-    document.addEventListener('click', (e) => {
-      if (!panel.classList.contains('open')) return;
-      const target = e.target;
-      if (!panel.contains(target) && !fab.contains(target)) {
-        panel.classList.remove('open');
-        panel.setAttribute('aria-hidden', 'true');
+  // brand tap acts as menu toggle on mobile ONLY
+  if (brand && mobileMenu) {
+    brand.addEventListener('click', (e) => {
+      if (window.innerWidth <= 880) {
+        e.preventDefault();
+        toggleMenu();
       }
     });
   }
 
-  // CONTACT FORM (prevent actual submit for now)
-  const contactForm = document.querySelector('.contact-form');
-  if (contactForm) {
-    contactForm.addEventListener('submit', (e) => {
-      e.preventDefault();
-      alert('Thanks for your message. This demo form does not send yet — please email support@willex.example.');
+  // Close menu when a link is clicked
+  if (mobileMenu) {
+    mobileMenu.querySelectorAll('a').forEach(link => {
+      link.addEventListener('click', () => {
+        mobileMenu.classList.remove('open');
+      });
+    });
+  }
+
+  // --- Highlight current page in desktop nav ---
+  const page = document.body.dataset.page;
+  if (page) {
+    document.querySelectorAll('.desktop-nav a[data-page]').forEach(link => {
+      if (link.dataset.page === page) {
+        link.classList.add('active');
+      }
+    });
+  }
+
+  // --- Smooth scrolling for #anchor links ---
+  document.querySelectorAll('a[href^="#"]').forEach(link => {
+    link.addEventListener('click', (e) => {
+      const targetId = link.getAttribute('href');
+      if (!targetId || targetId === '#') return;
+      const target = document.querySelector(targetId);
+
+      if (target) {
+        e.preventDefault();
+        target.scrollIntoView({
+          behavior: 'smooth',
+          block: 'start'
+        });
+      }
+    });
+  });
+
+  // --- Floating support button toggle ---
+  const supportFab = document.querySelector('.support-fab');
+  const supportPanel = document.querySelector('.support-panel');
+
+  if (supportFab && supportPanel) {
+    supportFab.addEventListener('click', () => {
+      supportPanel.classList.toggle('open');
     });
   }
 });

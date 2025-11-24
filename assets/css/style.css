@@ -603,3 +603,10 @@ footer{
     padding-inline:16px;
   }
 }
+/* Mobile: make brand clickable menu */
+@media (max-width: 880px) {
+  .brand {
+    cursor: pointer;
+    user-select: none;
+  }
+}
