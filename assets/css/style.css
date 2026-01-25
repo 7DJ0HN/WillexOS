@@ -611,23 +611,4 @@ footer{
     user-select: none;
   }
 }
-/* Centered CTA block for PositionSense */
-.positionsense-cta {
-  text-align: center;
-  display: flex;
-  justify-content: center;
-}
-
-.positionsense-cta .cta-inner {
-  max-width: 600px;
-}
-
-.positionsense-cta h2 {
-  margin-bottom: 14px;
-}
-
-.positionsense-cta p {
-  margin-bottom: 20px;
-  font-size: 1.1rem;
-}
 
