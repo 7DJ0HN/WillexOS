@@ -1,0 +1,130 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1">
+  <title>Willex OS — Bellatron</title>
+
+  <link rel="icon" href="/assets/img/willex-logo.png">
+  <link rel="stylesheet" href="/assets/css/style.css">
+  <link rel="stylesheet" href="/assets/css/bellatron.css">
+
+  <script defer src="/assets/js/script.js"></script>
+
+  <!-- Chart.js for the timeline chart -->
+  <script defer src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js"></script>
+  <script defer src="/assets/js/bellatron.js"></script>
+</head>
+
+<body data-page="bellatron">
+
+<header class="nav-header">
+  <div class="brand">
+    <img src="/assets/img/willex-logo.png" alt="Willex OS">
+    <span>Willex OS</span>
+  </div>
+
+  <nav class="desktop-nav">
+    <a href="/index.html" data-page="home">Home</a>
+    <a href="/positionsense.html" data-page="positionsense">PositionSense</a>
+    <a href="/bellatron" data-page="bellatron">Bellatron</a>
+    <a href="/index.html#support">Trade Support</a>
+  </nav>
+
+  <button class="hamburger" type="button" aria-label="Toggle menu">
+    <span></span><span></span><span></span>
+  </button>
+</header>
+
+<nav id="mobileMenu" class="mobile-menu" aria-label="Mobile navigation">
+  <a href="/index.html">Home</a>
+  <a href="/positionsense.html">PositionSense</a>
+  <a href="/bellatron">Bellatron</a>
+  <a href="/index.html#support">Trade Support</a>
+</nav>
+
+<div class="hero-wrap">
+  <section class="hero reveal">
+    <div class="hero-main">
+      <div class="hero-kicker">Installer Tool • Log Analysis • Engine v{{ engine_version }}</div>
+      <h1>Bellatron — diagnose faults from PositionSense logs.</h1>
+      <p>
+        Upload a PositionSense log file and get a ranked cause list, installer actions,
+        confidence grading, and a visual timeline of events.
+      </p>
+
+      <div class="hero-actions">
+        <label class="btn btn-primary bellatron-file">
+          <input id="logFile" type="file" accept=".txt,.log" hidden>
+          <span>Select log file</span>
+        </label>
+        <button id="analyzeBtn" class="btn btn-ghost" type="button" disabled>Analyze</button>
+      </div>
+
+      <div class="bellatron-meta">
+        <span id="fileName" class="chip">No file selected</span>
+        <span id="confidenceChip" class="chip chip-muted">Confidence: —</span>
+      </div>
+    </div>
+
+    <div class="hero-visual">
+      <div class="hero-orbit"></div>
+      <img src="/assets/img/willex-logo.png" class="hero-logo" alt="Willex OS">
+    </div>
+  </section>
+</div>
+
+<section class="section section-soft reveal">
+  <h2>Visual timeline</h2>
+  <p>Each point is a close attempt. Hover to see outcome, duration, and humidity correlation.</p>
+
+  <div class="cards">
+    <article class="card bellatron-wide">
+      <div class="card-shine"></div>
+      <div class="bellatron-chart-wrap">
+        <canvas id="timelineChart" height="120"></canvas>
+      </div>
+
+      <div class="bellatron-episodes">
+        <h3>Episodes</h3>
+        <div id="episodesList" class="bellatron-list muted">Upload a log to populate episodes.</div>
+      </div>
+    </article>
+  </div>
+</section>
+
+<section class="section reveal">
+  <h2>Likely causes</h2>
+  <p>Weighted and normalized — the top item is the primary hypothesis.</p>
+
+  <div class="cards">
+    <article class="card">
+      <div class="card-shine"></div>
+      <div class="card-icon">🧠</div>
+      <h3>Ranked causes</h3>
+      <div id="causesList" class="bellatron-list muted">Upload a log to populate results.</div>
+    </article>
+
+    <article class="card">
+      <div class="card-shine"></div>
+      <div class="card-icon">🛠️</div>
+      <h3>Installer recommendations</h3>
+      <div id="recsList" class="bellatron-list muted">Upload a log to populate recommendations.</div>
+    </article>
+
+    <article class="card">
+      <div class="card-shine"></div>
+      <div class="card-icon">📌</div>
+      <h3>Notes</h3>
+      <div id="notesList" class="bellatron-list muted">Upload a log to populate notes.</div>
+    </article>
+  </div>
+</section>
+
+<footer>
+  © <span id="year"></span> Willex OS — Installer Edition
+  · Professional installation required for powered gates.
+</footer>
+
+</body>
+</html>
