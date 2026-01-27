@@ -611,4 +611,23 @@ footer{
     user-select: none;
   }
 }
+/* Centered CTA block */
+.cta-centered {
+  text-align: center;
+  display: flex;
+  justify-content: center;
+}
+
+.cta-centered .cta-inner {
+  max-width: 600px;
+}
+
+.cta-centered h2 {
+  margin-bottom: 14px;
+}
+
+.cta-centered p {
+  margin-bottom: 20px;
+  font-size: 1.1rem;
+}
 
