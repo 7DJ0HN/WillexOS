@@ -1,0 +1,46 @@
+{
+  "CAME": {
+    "ZA3": {
+      "compatible": true,
+      "wiring": {
+        "open": { "terminal": "2-7", "contact": "NO" },
+        "ped":  { "terminal": "2-3", "contact": "NO" },
+        "stop": { "terminal": "1-2", "contact": "NC" }
+      },
+      "notes": [
+        "STOP must be closed for normal operation",
+        "Check jumper configuration before testing"
+      ]
+    }
+  },
+
+  "FAAC": {
+    "455D": {
+      "compatible": true,
+      "wiring": {
+        "open": { "terminal": "START", "contact": "NO" },
+        "ped":  { "terminal": "PED", "contact": "NO" },
+        "stop": { "terminal": "STOP", "contact": "NC" }
+      },
+      "notes": [
+        "Auto-close may prevent manual testing",
+        "STOP input is supervised"
+      ]
+    }
+  },
+
+  "Roger": {
+    "B70": {
+      "compatible": true,
+      "wiring": {
+        "open": { "terminal": "32", "contact": "NO" },
+        "ped":  { "terminal": "33", "contact": "NO" },
+        "stop": { "terminal": "25", "contact": "NC" }
+      },
+      "notes": [
+        "STOP defaults to NC",
+        "Disable auto-close during commissioning"
+      ]
+    }
+  }
+}

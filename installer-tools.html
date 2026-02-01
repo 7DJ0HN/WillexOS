@@ -1,0 +1,423 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <title>Installer Tools — Willex OS</title>
+
+  <link rel="icon" href="assets/img/willex-logo.png">
+  <link rel="stylesheet" href="assets/css/style.css">
+
+  <!-- model-viewer (3D PCB) -->
+  <script type="module" src="https://unpkg.com/@google/model-viewer/dist/model-viewer.min.js"></script>
+
+  <!-- Your global site script (year, hamburger, reveal) -->
+  <script defer src="assets/js/script.js"></script>
+
+  <!-- Page-specific JS (dropdowns + viewer sync) -->
+  <script defer src="assets/js/installer-tools.js"></script>
+
+  <style>
+    /* Keep this page self-contained, but respect your theme variables */
+
+    .tools-wrap{
+      margin-top:18px;
+      background:var(--bg-soft);
+      border:1px solid rgba(255,255,255,.06);
+      border-radius:var(--radius-card);
+      padding:14px;
+      box-shadow:var(--shadow-soft);
+    }
+
+    /* NOTE: we keep your .tools-grid name, but we only use it for the single card now */
+    .tools-grid{
+      display:grid;
+      grid-template-columns: 1fr;
+      gap:14px;
+      margin-top:14px;
+    }
+
+    .tools-panel{
+      background:rgba(16,20,29,.9);
+      border:1px solid rgba(255,255,255,.06);
+      border-radius:var(--radius-card);
+      padding:14px;
+    }
+    .tools-panel h3{ margin:0 0 10px; font-size:1rem; letter-spacing:.03em; }
+    .tools-panel p{ margin:0 0 10px; color:var(--muted); }
+
+    .field-row{
+      display:flex;
+      gap:10px;
+      flex-wrap:wrap;
+      align-items:center;
+      margin:10px 0 0;
+    }
+
+    .select{
+      flex: 1 1 240px;
+      min-width: 240px;
+      background:rgba(5,6,10,.55);
+      border:1px solid rgba(255,255,255,.10);
+      border-radius:14px;
+      padding:10px 12px;
+      color:var(--ink);
+      font-weight:700;
+      outline:none;
+    }
+    .select:focus{ border-color: rgba(255,195,0,.7); }
+
+    .status{
+      margin-top:12px;
+      padding:12px;
+      border-radius:14px;
+      border:1px solid rgba(255,255,255,.08);
+      background:rgba(5,6,10,.55);
+      font-weight:800;
+      letter-spacing:.02em;
+    }
+    .status.known{ border-color: rgba(80, 200, 120, .35); }
+    .status.unknown{ border-color: rgba(255, 195, 0, .35); }
+    .status.notok{ border-color: rgba(255, 80, 80, .35); }
+
+    .wiring{
+      margin-top:12px;
+      border-radius:14px;
+      border:1px solid rgba(255,255,255,.08);
+      background:rgba(5,6,10,.55);
+      padding:12px;
+    }
+
+    .wiring-row{
+      display:flex;
+      justify-content:space-between;
+      gap:12px;
+      padding:10px 0;
+      border-bottom:1px solid rgba(255,255,255,.06);
+      cursor:pointer;
+      user-select:none;
+    }
+    .wiring-row:last-child{ border-bottom:none; }
+    .wiring-row:hover{ opacity:.95; }
+    .w-key{ font-weight:900; }
+    .w-val{ color:var(--ink); opacity:.95; text-align:right; }
+
+    .notes{
+      margin-top:12px;
+      border-radius:14px;
+      border:1px solid rgba(255,255,255,.08);
+      background:rgba(5,6,10,.55);
+      padding:12px;
+    }
+    .notes ul{ margin:8px 0 0 18px; color:var(--muted); }
+
+    /* Combined layout: viewer + info */
+    .viewer-grid{
+      display:grid;
+      grid-template-columns: 1fr;
+      gap:14px;
+    }
+    @media (min-width: 980px){
+      .viewer-grid{ grid-template-columns: 1fr 420px; }
+    }
+
+    .viewer-card{
+      background:rgba(16,20,29,.9);
+      border:1px solid rgba(255,255,255,.06);
+      border-radius:var(--radius-card);
+      padding:14px;
+      overflow:hidden;
+    }
+
+    model-viewer{
+      width:100%;
+      height:520px;
+      background:rgba(5,6,10,.35);
+      border-radius:18px;
+      border:1px solid rgba(255,255,255,.06);
+    }
+    @media (max-width: 520px){
+      model-viewer{ height:420px; }
+    }
+
+    /* Hotspots */
+    .hotspot{
+      background:rgba(16,20,29,.92);
+      border:1px solid rgba(255,255,255,.12);
+      color:var(--ink);
+      padding:7px 10px;
+      border-radius:999px;
+      font-size:12px;
+      font-weight:700;
+      cursor:pointer;
+      user-select:none;
+      white-space:nowrap;
+      box-shadow:0 10px 25px rgba(0,0,0,.35);
+    }
+    .hotspot:hover{ border-color: rgba(255,195,0,.7); }
+    .hotspot:focus{ outline:2px solid var(--accent); outline-offset:2px; }
+
+    .kbd{
+      font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace;
+      font-size: 12px;
+      padding:2px 6px;
+      border-radius:8px;
+      border:1px solid rgba(255,255,255,.12);
+      background:rgba(5,6,10,.6);
+      color:var(--ink);
+    }
+
+    .hotspot.is-active{
+      background: rgba(255, 195, 0, 0.28);
+      box-shadow: 0 0 0 4px rgba(255,195,0,.10);
+    }
+
+    .install-notes-box{
+      margin-top:12px;
+      border-radius:14px;
+      border:1px solid rgba(255,255,255,.08);
+      background:rgba(5,6,10,.55);
+      padding:12px;
+    }
+    .install-notes-box strong{ display:block; margin-bottom:8px; }
+
+    .muted{ color:var(--muted); }
+  </style>
+</head>
+
+<body data-page="installertools">
+
+  <!-- Header (consistent) -->
+  <header class="nav-header">
+  <div class="brand">
+    <img src="assets/img/willex-logo.png" alt="Willex OS">
+    <span>Willex OS</span>
+  </div>
+
+  <nav class="desktop-nav">
+    <a href="index.html" data-page="home">Home</a>
+    <a href="about.html" data-page="about">About</a>
+    <a href="contact.html" data-page="contact">Contact</a>
+
+    <a href="index.html#why">Why Willex OS</a>
+    <a href="index.html#install">Installation</a>
+    <a href="installer-tools.html" data-page="installertools">Installer Tools</a>
+    
+    <a href="index.html#support">Trade Support</a>
+  </nav>
+
+  <button class="hamburger" type="button" aria-label="Toggle menu">
+    <span></span><span></span><span></span>
+  </button>
+</header>
+
+<!-- Mobile Menu -->
+<nav id="mobileMenu" class="mobile-menu" aria-label="Mobile navigation">
+  <a href="index.html">Home</a>
+  <a href="about.html">About</a>
+  <a href="contact.html">Contact</a>
+  <a href="index.html#why">Why Willex OS</a>
+  <a href="index.html#install">Installation</a>
+  <a href="installer-tools.html">Installer Tools</a>
+  
+  <a href="index.html#support">Trade Support</a>
+</nav>
+
+  <!-- Hero -->
+  <div class="hero-wrap hero-wrap-sub">
+    <section class="hero hero-sub reveal">
+      <div class="hero-main">
+        <div class="hero-kicker">Public Reference • Fast On-Site Lookup</div>
+        <h1>Installer Tools</h1>
+        <p>Compatibility, terminal mapping, and Willex relay guidance — in one place.</p>
+      </div>
+
+      <div class="hero-visual">
+        <div class="hero-orbit small"></div>
+        <img src="assets/img/willex-logo.png" class="hero-logo small" alt="Willex OS logo">
+      </div>
+    </section>
+  </div>
+
+  <!-- Tool -->
+  <section class="section reveal">
+    <h2>Compatibility &amp; wiring lookup</h2>
+    <p class="muted">Select a brand and panel model. Click a row (OPEN/CLOSE/PED/STOP) to highlight the matching relay on the PCB.</p>
+
+    <div class="tools-wrap">
+      <div class="viewer-grid">
+
+        <!-- LEFT: 3D viewer + hotspots -->
+        <div class="viewer-card">
+          <h3 style="margin:0 0 10px;">Willex relay board</h3>
+          <p class="muted" style="margin:0 0 12px;">Drag to rotate • scroll/pinch to zoom • click a label for notes</p>
+
+          <model-viewer
+            id="mv"
+            src="\assets\3d\willexos_v1_wb.glb"
+            camera-controls
+            environment-image="https://modelviewer.dev/shared-assets/environments/neutral.hdr"
+            shadow-intensity="1"
+            exposure="1.1"
+            touch-action="pan-y">
+
+            <button class="hotspot"
+              slot="hotspot-power"
+              data-position="33.197000m 21.395602m 14.240306m"
+              data-normal="0m 0m 1m"
+              data-note="Power In: connect 12–24V DC. Observe polarity. Fuse inline recommended.">
+              Power In
+            </button>
+
+            <button class="hotspot"
+              slot="hotspot-open"
+              data-position="-30.616442m 14.905897m 16.040304m"
+              data-normal="0m 0m 1m"
+              data-note="OPEN relay: wire COM/NO to the gate controller OPEN input (dry contact).">
+              Relay: OPEN
+            </button>
+
+            <button class="hotspot"
+              slot="hotspot-close"
+              data-position="-31.963730m 1.155861m 16.040303m"
+              data-normal="0m 0m 1m"
+              data-note="CLOSE relay: wire COM/NO to the gate controller CLOSE input (dry contact).">
+              Relay: CLOSE
+            </button>
+
+            <button class="hotspot"
+              slot="hotspot-ped"
+              data-position="-32.372404m -15.464245m 16.040303m"
+              data-normal="0m 0m 1m"
+              data-note="PED relay: wire COM/NO to the pedestrian/partial-open input (dry contact).">
+              Relay: PED
+            </button>
+
+            <button class="hotspot"
+              slot="hotspot-stop"
+              data-position="-28.388012m -30.271466m 16.040303m"
+              data-normal="0m 0m 1m"
+              data-note="STOP relay: wire COM/NC (or as required) for stop/safety circuit. Confirm panel logic before wiring.">
+              Relay: STOP
+            </button>
+
+            <button class="hotspot"
+              slot="hotspot-w5500"
+              data-position="19.801808m -30.372908m 6.611874m"
+              data-normal="-1m 0m 0m"
+              data-note="Ethernet module reference point.">
+              W5500 Ethernet Module
+            </button>
+
+            <button class="hotspot"
+              slot="hotspot-uln2003a"
+              data-position="1.075348m -6.515875m 2.190303m"
+              data-normal="0m 0m 1m"
+              data-note="ULN2003A driver IC.">
+              ULN2003A
+            </button>
+
+          </model-viewer>
+
+          <div class="install-notes-box">
+            <strong>Install notes</strong>
+            <div id="pcbInfo" class="muted">Select a brand + model to generate exact terminal mapping.</div>
+          </div>
+        </div>
+
+        <!-- RIGHT: selector + wiring + notes -->
+        <div class="tools-panel">
+          <h3>Select control panel</h3>
+          <div class="field-row">
+            <select id="brandSelect" class="select" aria-label="Select brand">
+              <option value="">Brand…</option>
+            </select>
+
+            <select id="modelSelect" class="select" aria-label="Select model" disabled>
+              <option value="">Model…</option>
+            </select>
+          </div>
+
+          <div id="statusBox" class="status unknown" style="display:none;"></div>
+
+          <div id="wiringBox" class="wiring" style="display:none;">
+            <div class="wiring-row" data-action="open" title="Highlight OPEN relay on PCB">
+              <div class="w-key">OPEN</div>
+              <div class="w-val" id="wOpen">—</div>
+            </div>
+            <div class="wiring-row" data-action="close" title="Highlight CLOSE relay on PCB">
+              <div class="w-key">CLOSE</div>
+              <div class="w-val" id="wClose">—</div>
+            </div>
+            <div class="wiring-row" data-action="ped" title="Highlight PED relay on PCB">
+              <div class="w-key">PED</div>
+              <div class="w-val" id="wPed">—</div>
+            </div>
+            <div class="wiring-row" data-action="stop" title="Highlight STOP relay on PCB">
+              <div class="w-key">STOP</div>
+              <div class="w-val" id="wStop">—</div>
+            </div>
+          </div>
+
+          <div id="notesBox" class="notes" style="display:none;">
+            <strong>Installer notes</strong>
+            <ul id="notesList"></ul>
+          </div>
+
+          <!-- SINGLE CARD: fills the space -->
+          <div class="tools-grid" style="margin-top:14px;">
+            <div class="tools-panel">
+              <h3>Quick workflow</h3>
+
+              <div class="muted" style="margin-bottom:12px;">
+                <span class="kbd">1</span> Select <strong>Brand</strong> + <strong>Model</strong>
+                &nbsp;&nbsp;·&nbsp;&nbsp;
+                <span class="kbd">2</span> Click <strong>OPEN/CLOSE/PED/STOP</strong>
+                &nbsp;&nbsp;·&nbsp;&nbsp;
+                <span class="kbd">3</span> Wire to the terminal shown
+              </div>
+
+              <div style="display:flex; gap:10px; flex-wrap:wrap; margin-bottom:12px;">
+                <div style="flex:1 1 180px; padding:10px 12px; border-radius:14px; border:1px solid rgba(255,255,255,.08); background:rgba(5,6,10,.55);">
+                  <div style="font-weight:900; margin-bottom:6px;">Row click</div>
+                  <div class="muted">Highlights the matching relay label on the PCB viewer.</div>
+                </div>
+
+                <div style="flex:1 1 180px; padding:10px 12px; border-radius:14px; border:1px solid rgba(255,255,255,.08); background:rgba(5,6,10,.55);">
+                  <div style="font-weight:900; margin-bottom:6px;">Hotspot click</div>
+                  <div class="muted">Shows quick notes for that relay or component.</div>
+                </div>
+              </div>
+
+              <div style="display:flex; gap:10px; flex-wrap:wrap; margin-bottom:12px;">
+                <div style="flex:1 1 180px; padding:10px 12px; border-radius:14px; border:1px solid rgba(255,255,255,.08); background:rgba(5,6,10,.55);">
+                  <div style="font-weight:900; margin-bottom:6px;">Wire type</div>
+                  <div class="muted">All relay outputs are dry-contact. Use COM/NO or COM/NC as indicated.</div>
+                </div>
+
+                <div style="flex:1 1 180px; padding:10px 12px; border-radius:14px; border:1px solid rgba(255,255,255,.08); background:rgba(5,6,10,.55);">
+                  <div style="font-weight:900; margin-bottom:6px;">STOP caution</div>
+                  <div class="muted">STOP is commonly NC &amp; supervised. Confirm panel logic before bypass/testing.</div>
+                </div>
+              </div>
+
+              <div style="padding:10px 12px; border-radius:14px; border:1px solid rgba(255,195,0,.25); background:rgba(255,195,0,.08);">
+                <div style="font-weight:900; margin-bottom:4px;">Unconfirmed entries</div>
+                <div class="muted">Use as a lead — always verify against the panel terminal legend on-site.</div>
+              </div>
+
+            </div>
+          </div>
+
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <footer>
+    © <span id="year"></span> Willex OS — Installer Reference
+    · Professional installation required for powered gates.
+  </footer>
+
+</body>
+</html>
