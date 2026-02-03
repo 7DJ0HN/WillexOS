@@ -1,11 +1,12 @@
-/* Installer Tools + PCB Viewer integration (public)
-   - Loads controllers.json
-   - Populates Brand + Model dropdowns
-   - Shows wiring + notes
-   - Links wiring rows to PCB hotspots
+/* Installer Tools — dropdown wiring lookup + PCB hotspot sync
+   Expects:
+   - controllers.json in same folder as this HTML (or adjust path below)
+   - HTML ids: brandSelect, modelSelect, statusBox, wiringBox, wOpen, wClose, wPed, wStop, notesBox, notesList, pcbInfo
+   - Hotspots: .hotspot[data-action="open|close|ped|stop"] on relay hotspots
+   - Wiring rows: .wiring-row[data-action="open|close|ped|stop"]
 */
 
-const DATA_URL = 'assets/data/controllers.json';
+let DB = null;
 
 const brandSelect = document.getElementById('brandSelect');
 const modelSelect = document.getElementById('modelSelect');
@@ -13,135 +14,149 @@ const modelSelect = document.getElementById('modelSelect');
 const statusBox = document.getElementById('statusBox');
 const wiringBox = document.getElementById('wiringBox');
 
-const wOpen  = document.getElementById('wOpen');
+const wOpen = document.getElementById('wOpen');
 const wClose = document.getElementById('wClose');
-const wPed   = document.getElementById('wPed');
-const wStop  = document.getElementById('wStop');
+const wPed = document.getElementById('wPed');
+const wStop = document.getElementById('wStop');
 
-const notesBox  = document.getElementById('notesBox');
+const notesBox = document.getElementById('notesBox');
 const notesList = document.getElementById('notesList');
 
-// PCB viewer note panel (optional)
 const pcbInfo = document.getElementById('pcbInfo');
 
-let DB = null;
-
-function esc(str){
-  return String(str ?? '').replace(/[&<>"']/g, (m) => ({
-    '&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'
-  }[m]));
+function escapeHtml(s){
+  return String(s ?? '')
+    .replaceAll('&', '&amp;')
+    .replaceAll('<', '&lt;')
+    .replaceAll('>', '&gt;');
 }
 
-function setStatus(text, cls){
+function setStatus(kind, text){
+  if (!statusBox) return;
   statusBox.style.display = 'block';
-  statusBox.classList.remove('known','unknown','notok');
-  statusBox.classList.add(cls);
+  statusBox.classList.remove('known', 'unknown', 'notok');
+  statusBox.classList.add(kind);
   statusBox.textContent = text;
 }
 
-function hideResults(){
+function clearStatus(){
+  if (!statusBox) return;
   statusBox.style.display = 'none';
-  wiringBox.style.display = 'none';
-  notesBox.style.display  = 'none';
-  if (pcbInfo) pcbInfo.textContent = 'Select a label or a wiring row to see notes.';
-  clearHotspotHighlight();
+  statusBox.textContent = '';
+  statusBox.classList.remove('known', 'unknown', 'notok');
 }
 
-function clearHotspotHighlight(){
-  document.querySelectorAll('.hotspot').forEach(b => b.classList.remove('is-active'));
+function fmtWiring(v){
+  // Accept string ("START / COM") or object {terminal:"...", note:"..."}
+  if (v == null) return '—';
+  if (typeof v === 'string') return v;
+  if (typeof v === 'object'){
+    const t = v.terminal ?? v.term ?? v.pin ?? '';
+    const n = v.note ?? '';
+    return (t && n) ? `${t} (${n})` : (t || n || '—');
+  }
+  return String(v);
 }
 
 function highlightHotspot(action){
-  clearHotspotHighlight();
-  const btn = document.querySelector(`.hotspot[data-action="${action}"]`);
-  if (btn) btn.classList.add('is-active');
+  // Remove previous highlight
+  document.querySelectorAll('.hotspot.is-active').forEach(h => h.classList.remove('is-active'));
+
+  const target = document.querySelector(`.hotspot[data-action="${action}"]`);
+  if (target) target.classList.add('is-active');
 }
 
-function fmtWiring(w){
-  if (!w) return '—';
-  const term = w.terminal ?? '—';
-  const contact = w.contact ? ` (${w.contact})` : '';
-  return `${term}${contact}`;
-}
+function renderSelection(){
+  const b = brandSelect.value;
+  const m = modelSelect.value;
 
-function setPCBNoteFromSelection(brand, model, record){
-  if (!pcbInfo) return;
-  const wiring = record?.wiring || {};
-  const lines = [];
-  if (wiring.open)  lines.push(`OPEN relay → ${fmtWiring(wiring.open)}`);
-  if (wiring.close) lines.push(`CLOSE relay → ${fmtWiring(wiring.close)}`);
-  if (wiring.ped)   lines.push(`PED relay → ${fmtWiring(wiring.ped)}`);
-  if (wiring.stop)  lines.push(`STOP relay → ${fmtWiring(wiring.stop)}`);
-
-  const header = `${brand} ${model}`;
-  pcbInfo.textContent = lines.length ? `${header}: ${lines.join(' · ')}` : `${header}: No wiring data.`;
-}
-
-function renderModelList(brand){
-  modelSelect.innerHTML = '<option value="">Model…</option>';
-  modelSelect.disabled = true;
-
-  const modelsObj = DB?.[brand];
-  if (!modelsObj) return;
-
-  const models = Object.keys(modelsObj).sort((a,b)=>a.localeCompare(b, undefined, {numeric:true, sensitivity:'base'}));
-  for (const m of models){
-    const opt = document.createElement('option');
-    opt.value = m;
-    opt.textContent = m;
-    modelSelect.appendChild(opt);
-  }
-  modelSelect.disabled = false;
-}
-
-function renderSelection(brand, model){
-  const record = DB?.[brand]?.[model];
-  if (!record){
-    setStatus('No data for that selection.', 'unknown');
-    wiringBox.style.display = 'none';
-    notesBox.style.display  = 'none';
+  if (!DB || !b || !m){
+    wiringBox && (wiringBox.style.display = 'none');
+    notesBox && (notesBox.style.display = 'none');
+    clearStatus();
+    if (pcbInfo) pcbInfo.textContent = 'Select a brand + model to generate exact terminal mapping.';
     return;
   }
 
-  // Status
-  if (record.compatible === true){
-    setStatus('Compatible', 'known');
-  } else if (record.compatible === false){
-    setStatus('Not compatible', 'notok');
-  } else {
-    setStatus('Unconfirmed', 'unknown');
+  const rec = DB?.[b]?.[m];
+  if (!rec){
+    setStatus('notok', 'No record found for this selection.');
+    wiringBox && (wiringBox.style.display = 'none');
+    notesBox && (notesBox.style.display = 'none');
+    if (pcbInfo) pcbInfo.textContent = `${b} ${m}: no dataset entry yet.`;
+    return;
   }
 
-  // Wiring
-  const wiring = record.wiring || {};
-  wOpen.textContent  = fmtWiring(wiring.open);
-  if (wClose) wClose.textContent = fmtWiring(wiring.close);
-  wPed.textContent   = fmtWiring(wiring.ped);
-  wStop.textContent  = fmtWiring(wiring.stop);
-  wiringBox.style.display = 'block';
+  // Wiring block
+  const wiring = rec.wiring || {};
+  if (wiringBox){
+    wiringBox.style.display = 'block';
+    if (wOpen)  wOpen.textContent  = fmtWiring(wiring.open);
+    if (wClose) wClose.textContent = fmtWiring(wiring.close);
+    if (wPed)   wPed.textContent   = fmtWiring(wiring.ped);
+    if (wStop)  wStop.textContent  = fmtWiring(wiring.stop);
+  }
 
-  // Notes
-  notesList.innerHTML = '';
-  const notes = Array.isArray(record.notes) ? record.notes : [];
-  if (notes.length){
-    for (const n of notes){
-      const li = document.createElement('li');
-      li.innerHTML = esc(n);
-      notesList.appendChild(li);
+  // Notes list
+  const notes = Array.isArray(rec.notes) ? rec.notes : (rec.notes ? [rec.notes] : []);
+  if (notesBox && notesList){
+    notesList.innerHTML = '';
+    if (notes.length){
+      notesBox.style.display = 'block';
+      notes.forEach(n => {
+        const li = document.createElement('li');
+        li.innerHTML = escapeHtml(n);
+        notesList.appendChild(li);
+      });
+    } else {
+      notesBox.style.display = 'none';
     }
-    notesBox.style.display = 'block';
-  } else {
-    notesBox.style.display = 'none';
   }
 
-  // PCB summary note + default highlight
-  setPCBNoteFromSelection(brand, model, record);
+  // Default highlight OPEN when a model is chosen
   highlightHotspot('open');
+
+  if (pcbInfo){
+    const openMap = wiring.open ? fmtWiring(wiring.open) : '—';
+    pcbInfo.textContent = `${b} ${m}: OPEN relay → ${openMap}`;
+  }
+}
+
+function populateBrands(){
+  if (!DB) return;
+  // Clear existing, keep placeholder
+  brandSelect.innerHTML = `<option value="">Brand…</option>`;
+
+  Object.keys(DB).sort().forEach(brand => {
+    const opt = document.createElement('option');
+    opt.value = brand;
+    opt.textContent = brand;
+    brandSelect.appendChild(opt);
+  });
+}
+
+function populateModelsForBrand(brand){
+  modelSelect.innerHTML = `<option value="">Model…</option>`;
+  if (!DB || !brand || !DB[brand]){
+    modelSelect.disabled = true;
+    return;
+  }
+
+  Object.keys(DB[brand]).sort().forEach(model => {
+    const opt = document.createElement('option');
+    opt.value = model;
+    opt.textContent = model;
+    modelSelect.appendChild(opt);
+  });
+
+  modelSelect.disabled = false;
 }
 
 function hookupWiringRowClicks(){
-  document.querySelectorAll('[data-wiring-action]').forEach(row => {
-    const action = row.getAttribute('data-wiring-action');
+  // Your HTML uses: <div class="wiring-row" data-action="open|close|ped|stop">
+  document.querySelectorAll('.wiring-row[data-action]').forEach(row => {
+    const action = row.getAttribute('data-action');
+
     const handler = () => {
       const b = brandSelect.value;
       const m = modelSelect.value;
@@ -172,66 +187,114 @@ function hookupWiringRowClicks(){
   });
 }
 
-async function init(){
-  hideResults();
-
-  try {
-    const res = await fetch(DATA_URL, { cache: 'no-store' });
-    if (!res.ok) throw new Error(`HTTP ${res.status}`);
-    DB = await res.json();
-
-    // Brands
-    const brands = Object.keys(DB).sort((a,b)=>a.localeCompare(b, undefined, {sensitivity:'base'}));
-    for (const b of brands){
-      const opt = document.createElement('option');
-      opt.value = b;
-      opt.textContent = b;
-      brandSelect.appendChild(opt);
-    }
-
-    // Hook events
-    brandSelect.addEventListener('change', () => {
-      const brand = brandSelect.value;
-      hideResults();
-      modelSelect.value = '';
-      if (!brand){
-        modelSelect.innerHTML = '<option value="">Model…</option>';
-        modelSelect.disabled = true;
-        return;
-      }
-      renderModelList(brand);
-    });
-
-    modelSelect.addEventListener('change', () => {
-      hideResults();
-      const brand = brandSelect.value;
-      const model = modelSelect.value;
-      if (!brand || !model) return;
-      renderSelection(brand, model);
-    });
-
-    hookupWiringRowClicks();
-
-  } catch (err){
-    console.error(err);
-    setStatus(`Data load failed: ${err.message}`, 'notok');
-  }
-}
-
-// Hotspot click -> show note
-(function hookupHotspots(){
-  const info = pcbInfo;
+function hookupHotspotNotes(){
+  // Optional: clicking hotspots can update pcbInfo with the hotspot's data-note
   document.querySelectorAll('.hotspot').forEach(btn => {
     btn.addEventListener('click', (e) => {
       e.preventDefault();
       e.stopPropagation();
-      highlightHotspot(btn.getAttribute('data-action') || '');
-      if (info){
-        const note = btn.getAttribute('data-note') || 'No notes set yet.';
-        info.textContent = note;
-      }
+      const note = btn.getAttribute('data-note') || '';
+      if (pcbInfo && note) pcbInfo.textContent = note;
+
+      const a = btn.getAttribute('data-action');
+      if (a) highlightHotspot(a);
     });
   });
-})();
+}
 
-window.addEventListener('DOMContentLoaded', init);
+async function loadControllers(){
+  // Adjust path if needed. If your controllers.json is beside installer-tools.html, use "controllers.json"
+  const res = await fetch('/assets/data/controllers.json', { cache: 'no-store' });
+  if (!res.ok) throw new Error(`controllers.json failed: ${res.status}`);
+  return await res.json();
+}
+
+(async function init(){
+  try{
+    DB = await loadControllers();
+    populateBrands();
+    hookupWiringRowClicks();
+    hookupHotspotNotes();
+
+    brandSelect.addEventListener('change', () => {
+      populateModelsForBrand(brandSelect.value);
+      modelSelect.value = '';
+      renderSelection();
+    });
+
+    modelSelect.addEventListener('change', () => {
+      renderSelection();
+    });
+
+    renderSelection();
+  } catch (err){
+    console.error(err);
+    setStatus('notok', 'Failed to load controller database. Check controllers.json path and hosting.');
+    if (pcbInfo) pcbInfo.textContent = 'Error: controllers.json could not be loaded.';
+  }
+})();
+// =============================
+// Hotspot highlighting + notes
+// =============================
+(() => {
+  const mv = document.getElementById("mv");
+  if (!mv) return;
+
+  const pcbInfo = document.getElementById("pcbInfo");
+
+  const ACTION_TO_SLOT = {
+    open: "hotspot-open",
+    close: "hotspot-close",
+    ped: "hotspot-ped",
+    stop: "hotspot-stop",
+  };
+
+  function setPcbInfo(text) {
+    if (!pcbInfo) return;
+    pcbInfo.textContent = text || "";
+  }
+
+  function clearActive() {
+    mv.querySelectorAll(".hotspot.is-active").forEach(b => b.classList.remove("is-active"));
+  }
+
+  function activateSlot(slotName, { showNote = true } = {}) {
+    if (!slotName) return;
+
+    const btn = mv.querySelector(`.hotspot[slot="${slotName}"]`);
+    if (!btn) return;
+
+    clearActive();
+    btn.classList.add("is-active");
+
+    if (showNote) {
+      const note = btn.getAttribute("data-note") || "";
+      if (note) setPcbInfo(note);
+    }
+  }
+
+  // Hotspot click: highlight + show notes
+  mv.querySelectorAll(".hotspot").forEach(btn => {
+    btn.addEventListener("click", (e) => {
+      e.preventDefault();
+      e.stopPropagation();
+      const slotName = btn.getAttribute("slot");
+      activateSlot(slotName, { showNote: true });
+    });
+  });
+
+  // Wiring row click: highlight corresponding relay hotspot + show relay notes
+  document.querySelectorAll(".wiring-row[data-action]").forEach(row => {
+    row.addEventListener("click", () => {
+      const action = row.getAttribute("data-action");
+      const slotName = ACTION_TO_SLOT[action];
+      activateSlot(slotName, { showNote: true });
+    });
+  });
+
+  // Optional: let your existing mapping code call this if you want
+  window.WILLEX_HOTSPOT = {
+    activate: (slot) => activateSlot(slot, { showNote: false }),
+    clear: clearActive,
+  };
+})();
