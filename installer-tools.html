@@ -29,12 +29,14 @@
       box-shadow:var(--shadow-soft);
     }
 
-    /* NOTE: we keep your .tools-grid name, but we only use it for the single card now */
     .tools-grid{
       display:grid;
       grid-template-columns: 1fr;
       gap:14px;
       margin-top:14px;
+    }
+    @media (min-width: 980px){
+      .tools-grid{ grid-template-columns: 1fr 420px; align-items:start; }
     }
 
     .tools-panel{
@@ -156,7 +158,6 @@
     }
     .hotspot:hover{ border-color: rgba(255,195,0,.7); }
     .hotspot:focus{ outline:2px solid var(--accent); outline-offset:2px; }
-
     .kbd{
       font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace;
       font-size: 12px;
@@ -166,7 +167,6 @@
       background:rgba(5,6,10,.6);
       color:var(--ink);
     }
-
     .hotspot.is-active{
       background: rgba(255, 195, 0, 0.28);
       box-shadow: 0 0 0 4px rgba(255,195,0,.10);
@@ -180,8 +180,12 @@
       padding:12px;
     }
     .install-notes-box strong{ display:block; margin-bottom:8px; }
-
     .muted{ color:var(--muted); }
+
+    /* ✅ ONLY FOR QUICK WORKFLOW: force the block to use full width of the right column */
+    @media (min-width: 980px){
+      .tools-grid{ grid-template-columns: 1fr !important; }
+    }
   </style>
 </head>
 
@@ -189,39 +193,37 @@
 
   <!-- Header (consistent) -->
   <header class="nav-header">
-  <div class="brand">
-    <img src="assets/img/willex-logo.png" alt="Willex OS">
-    <span>Willex OS</span>
-  </div>
+    <div class="brand">
+      <img src="assets/img/willex-logo.png" alt="Willex OS">
+      <span>Willex OS</span>
+    </div>
 
-  <nav class="desktop-nav">
-    <a href="index.html" data-page="home">Home</a>
-    <a href="about.html" data-page="about">About</a>
-    <a href="contact.html" data-page="contact">Contact</a>
+    <nav class="desktop-nav">
+      <a href="index.html" data-page="home">Home</a>
+      <a href="about.html" data-page="about">About</a>
+      <a href="contact.html" data-page="contact">Contact</a>
 
+      <a href="index.html#why">Why Willex OS</a>
+      <a href="index.html#install">Installation</a>
+      <a href="installer-tools.html" data-page="installertools">Installer Tools</a>
+      <a href="index.html#support">Trade Support</a>
+    </nav>
+
+    <button class="hamburger" type="button" aria-label="Toggle menu">
+      <span></span><span></span><span></span>
+    </button>
+  </header>
+
+  <!-- Mobile Menu -->
+  <nav id="mobileMenu" class="mobile-menu" aria-label="Mobile navigation">
+    <a href="index.html">Home</a>
+    <a href="about.html">About</a>
+    <a href="contact.html">Contact</a>
     <a href="index.html#why">Why Willex OS</a>
     <a href="index.html#install">Installation</a>
-    <a href="installer-tools.html" data-page="installertools">Installer Tools</a>
-    
+    <a href="installer-tools.html">Installer Tools</a>
     <a href="index.html#support">Trade Support</a>
   </nav>
-
-  <button class="hamburger" type="button" aria-label="Toggle menu">
-    <span></span><span></span><span></span>
-  </button>
-</header>
-
-<!-- Mobile Menu -->
-<nav id="mobileMenu" class="mobile-menu" aria-label="Mobile navigation">
-  <a href="index.html">Home</a>
-  <a href="about.html">About</a>
-  <a href="contact.html">Contact</a>
-  <a href="index.html#why">Why Willex OS</a>
-  <a href="index.html#install">Installation</a>
-  <a href="installer-tools.html">Installer Tools</a>
-  
-  <a href="index.html#support">Trade Support</a>
-</nav>
 
   <!-- Hero -->
   <div class="hero-wrap hero-wrap-sub">
@@ -245,6 +247,7 @@
     <p class="muted">Select a brand and panel model. Click a row (OPEN/CLOSE/PED/STOP) to highlight the matching relay on the PCB.</p>
 
     <div class="tools-wrap">
+
       <div class="viewer-grid">
 
         <!-- LEFT: 3D viewer + hotspots -->
@@ -254,70 +257,74 @@
 
           <model-viewer
             id="mv"
-            src="\assets\3d\willexos_v1_wb.glb"
+            src="assets/3d/willexos_v1_wb.glb"
             camera-controls
             environment-image="https://modelviewer.dev/shared-assets/environments/neutral.hdr"
             shadow-intensity="1"
             exposure="1.1"
             touch-action="pan-y">
 
-            <button class="hotspot"
-              slot="hotspot-power"
-              data-position="33.197000m 21.395602m 14.240306m"
-              data-normal="0m 0m 1m"
-              data-note="Power In: connect 12–24V DC. Observe polarity. Fuse inline recommended.">
-              Power In
-            </button>
+          <button class="hotspot"
+            slot="hotspot-power"
+            data-position="33.197000m 21.395602m 14.240306m"
+            data-normal="0m 0m 1m"
+            data-note="Power In: connect 12–24V DC. Observe polarity. Fuse inline recommended.">
+            Power In
+          </button>
 
-            <button class="hotspot"
-              slot="hotspot-open"
-              data-position="-30.616442m 14.905897m 16.040304m"
-              data-normal="0m 0m 1m"
-              data-note="OPEN relay: wire COM/NO to the gate controller OPEN input (dry contact).">
-              Relay: OPEN
-            </button>
+          <button class="hotspot"
+            slot="hotspot-open"
+            data-action="open"
+            data-position="-30.616442m 14.905897m 16.040304m"
+            data-normal="0m 0m 1m"
+            data-note="OPEN relay: wire COM/NO to the gate controller OPEN input (dry contact).">
+            Relay: OPEN
+          </button>
 
-            <button class="hotspot"
-              slot="hotspot-close"
-              data-position="-31.963730m 1.155861m 16.040303m"
-              data-normal="0m 0m 1m"
-              data-note="CLOSE relay: wire COM/NO to the gate controller CLOSE input (dry contact).">
-              Relay: CLOSE
-            </button>
+          <button class="hotspot"
+            slot="hotspot-close"
+            data-action="close"
+            data-position="-31.963730m 1.155861m 16.040303m"
+            data-normal="0m 0m 1m"
+            data-note="CLOSE relay: wire COM/NO to the gate controller CLOSE input (dry contact).">
+            Relay: CLOSE
+          </button>
 
-            <button class="hotspot"
-              slot="hotspot-ped"
-              data-position="-32.372404m -15.464245m 16.040303m"
-              data-normal="0m 0m 1m"
-              data-note="PED relay: wire COM/NO to the pedestrian/partial-open input (dry contact).">
-              Relay: PED
-            </button>
+          <button class="hotspot"
+            slot="hotspot-ped"
+            data-action="ped"
+            data-position="-32.372404m -15.464245m 16.040303m"
+            data-normal="0m 0m 1m"
+            data-note="PED relay: wire COM/NO to the pedestrian/partial-open input (dry contact).">
+            Relay: PED
+          </button>
 
-            <button class="hotspot"
-              slot="hotspot-stop"
-              data-position="-28.388012m -30.271466m 16.040303m"
-              data-normal="0m 0m 1m"
-              data-note="STOP relay: wire COM/NC (or as required) for stop/safety circuit. Confirm panel logic before wiring.">
-              Relay: STOP
-            </button>
+          <button class="hotspot"
+            slot="hotspot-stop"
+            data-action="stop"
+            data-position="-28.388012m -30.271466m 16.040303m"
+            data-normal="0m 0m 1m"
+            data-note="STOP relay: wire COM/NC (or as required) for stop/safety circuit. Confirm panel logic before wiring.">
+            Relay: STOP
+          </button>
 
-            <button class="hotspot"
-              slot="hotspot-w5500"
-              data-position="19.801808m -30.372908m 6.611874m"
-              data-normal="-1m 0m 0m"
-              data-note="Ethernet module reference point.">
-              W5500 Ethernet Module
-            </button>
+          <button class="hotspot"
+            slot="hotspot-w5500"
+            data-position="19.801808m -30.372908m 6.611874m"
+            data-normal="-1m 0m 0m"
+            data-note="Ethernet module reference point.">
+            W5500 Ethernet Module
+          </button>
 
-            <button class="hotspot"
-              slot="hotspot-uln2003a"
-              data-position="1.075348m -6.515875m 2.190303m"
-              data-normal="0m 0m 1m"
-              data-note="ULN2003A driver IC.">
-              ULN2003A
-            </button>
+          <button class="hotspot"
+            slot="hotspot-uln2003a"
+            data-position="1.075348m -6.515875m 2.190303m"
+            data-normal="0m 0m 1m"
+            data-note="ULN2003A driver IC.">
+            ULN2003A
+          </button>
 
-          </model-viewer>
+        </model-viewer>
 
           <div class="install-notes-box">
             <strong>Install notes</strong>
@@ -341,19 +348,19 @@
           <div id="statusBox" class="status unknown" style="display:none;"></div>
 
           <div id="wiringBox" class="wiring" style="display:none;">
-            <div class="wiring-row" data-action="open" title="Highlight OPEN relay on PCB">
+            <div class="wiring-row" data-action="open" title="Highlight OPEN relay on PCB" tabindex="0">
               <div class="w-key">OPEN</div>
               <div class="w-val" id="wOpen">—</div>
             </div>
-            <div class="wiring-row" data-action="close" title="Highlight CLOSE relay on PCB">
+            <div class="wiring-row" data-action="close" title="Highlight CLOSE relay on PCB" tabindex="0">
               <div class="w-key">CLOSE</div>
               <div class="w-val" id="wClose">—</div>
             </div>
-            <div class="wiring-row" data-action="ped" title="Highlight PED relay on PCB">
+            <div class="wiring-row" data-action="ped" title="Highlight PED relay on PCB" tabindex="0">
               <div class="w-key">PED</div>
               <div class="w-val" id="wPed">—</div>
             </div>
-            <div class="wiring-row" data-action="stop" title="Highlight STOP relay on PCB">
+            <div class="wiring-row" data-action="stop" title="Highlight STOP relay on PCB" tabindex="0">
               <div class="w-key">STOP</div>
               <div class="w-val" id="wStop">—</div>
             </div>
@@ -364,53 +371,56 @@
             <ul id="notesList"></ul>
           </div>
 
-          <!-- SINGLE CARD: fills the space -->
+          <!-- One filled card -->
           <div class="tools-grid" style="margin-top:14px;">
-            <div class="tools-panel">
-              <h3>Quick workflow</h3>
+            <div class="tools-panel" style="padding:22px;">
+              <h3 style="font-size:1.35rem; margin-bottom:16px;">Quick workflow</h3>
 
-              <div class="muted" style="margin-bottom:12px;">
-                <span class="kbd">1</span> Select <strong>Brand</strong> + <strong>Model</strong>
+              <div class="muted" style="margin-bottom:18px; font-size:1.10rem; line-height:1.65;">
+                <span class="kbd" style="font-size:14px; padding:4px 10px;">1</span>
+                Select <strong>Brand</strong> + <strong>Model</strong>
                 &nbsp;&nbsp;·&nbsp;&nbsp;
-                <span class="kbd">2</span> Click <strong>OPEN/CLOSE/PED/STOP</strong>
+                <span class="kbd" style="font-size:14px; padding:4px 10px;">2</span>
+                Click <strong>OPEN/CLOSE/PED/STOP</strong>
                 &nbsp;&nbsp;·&nbsp;&nbsp;
-                <span class="kbd">3</span> Wire to the terminal shown
+                <span class="kbd" style="font-size:14px; padding:4px 10px;">3</span>
+                Wire to the terminal shown
               </div>
 
-              <div style="display:flex; gap:10px; flex-wrap:wrap; margin-bottom:12px;">
-                <div style="flex:1 1 180px; padding:10px 12px; border-radius:14px; border:1px solid rgba(255,255,255,.08); background:rgba(5,6,10,.55);">
-                  <div style="font-weight:900; margin-bottom:6px;">Row click</div>
-                  <div class="muted">Highlights the matching relay label on the PCB viewer.</div>
+              <div style="display:grid; grid-template-columns:1fr; gap:14px; margin-bottom:16px;">
+                <div style="padding:18px 18px; border-radius:18px; border:1px solid rgba(255,255,255,.08); background:rgba(5,6,10,.55);">
+                  <div style="font-weight:900; margin-bottom:10px; font-size:1.08rem;">Row click</div>
+                  <div class="muted" style="font-size:1.02rem; line-height:1.6;">Highlights the matching relay label on the PCB viewer.</div>
                 </div>
 
-                <div style="flex:1 1 180px; padding:10px 12px; border-radius:14px; border:1px solid rgba(255,255,255,.08); background:rgba(5,6,10,.55);">
-                  <div style="font-weight:900; margin-bottom:6px;">Hotspot click</div>
-                  <div class="muted">Shows quick notes for that relay or component.</div>
-                </div>
-              </div>
-
-              <div style="display:flex; gap:10px; flex-wrap:wrap; margin-bottom:12px;">
-                <div style="flex:1 1 180px; padding:10px 12px; border-radius:14px; border:1px solid rgba(255,255,255,.08); background:rgba(5,6,10,.55);">
-                  <div style="font-weight:900; margin-bottom:6px;">Wire type</div>
-                  <div class="muted">All relay outputs are dry-contact. Use COM/NO or COM/NC as indicated.</div>
+                <div style="padding:18px 18px; border-radius:18px; border:1px solid rgba(255,255,255,.08); background:rgba(5,6,10,.55);">
+                  <div style="font-weight:900; margin-bottom:10px; font-size:1.08rem;">Hotspot click</div>
+                  <div class="muted" style="font-size:1.02rem; line-height:1.6;">Shows quick notes for that relay or component.</div>
                 </div>
 
-                <div style="flex:1 1 180px; padding:10px 12px; border-radius:14px; border:1px solid rgba(255,255,255,.08); background:rgba(5,6,10,.55);">
-                  <div style="font-weight:900; margin-bottom:6px;">STOP caution</div>
-                  <div class="muted">STOP is commonly NC &amp; supervised. Confirm panel logic before bypass/testing.</div>
+                <div style="padding:18px 18px; border-radius:18px; border:1px solid rgba(255,255,255,.08); background:rgba(5,6,10,.55);">
+                  <div style="font-weight:900; margin-bottom:10px; font-size:1.08rem;">Wire type</div>
+                  <div class="muted" style="font-size:1.02rem; line-height:1.6;">All relay outputs are dry-contact. Use COM/NO or COM/NC as indicated.</div>
+                </div>
+
+                <div style="padding:18px 18px; border-radius:18px; border:1px solid rgba(255,255,255,.08); background:rgba(5,6,10,.55);">
+                  <div style="font-weight:900; margin-bottom:10px; font-size:1.08rem;">STOP caution</div>
+                  <div class="muted" style="font-size:1.02rem; line-height:1.6;">STOP is commonly NC &amp; supervised. Confirm panel logic before bypass/testing.</div>
                 </div>
               </div>
 
-              <div style="padding:10px 12px; border-radius:14px; border:1px solid rgba(255,195,0,.25); background:rgba(255,195,0,.08);">
-                <div style="font-weight:900; margin-bottom:4px;">Unconfirmed entries</div>
-                <div class="muted">Use as a lead — always verify against the panel terminal legend on-site.</div>
+              <div style="padding:18px 18px; border-radius:18px; border:1px solid rgba(255,195,0,.25); background:rgba(255,195,0,.08);">
+                <div style="font-weight:900; margin-bottom:8px; font-size:1.08rem;">Unconfirmed entries</div>
+                <div class="muted" style="font-size:1.02rem; line-height:1.6;">Use as a lead — always verify against the panel terminal legend on-site.</div>
               </div>
 
             </div>
           </div>
 
         </div>
+
       </div>
+
     </div>
   </section>
 
