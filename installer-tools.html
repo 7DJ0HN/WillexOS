@@ -8,19 +8,12 @@
   <link rel="icon" href="assets/img/willex-logo.png">
   <link rel="stylesheet" href="assets/css/style.css">
 
-  <!-- model-viewer (3D PCB) -->
-  <script type="module" src="https://unpkg.com/@google/model-viewer/dist/model-viewer.min.js"></script>
-
   <!-- Your global site script (year, hamburger, reveal) -->
   <script defer src="assets/js/script.js"></script>
 
-  <!-- Page-specific JS (dropdowns + viewer sync) -->
-  <script defer src="assets/js/installer-tools.js"></script>
-
   <style>
-    /* Keep this page self-contained, but respect your theme variables */
-
-    .tools-wrap{
+    /* Page-only: match site aesthetic, add thumbnail cards */
+    .tool-hub{
       margin-top:18px;
       background:var(--bg-soft);
       border:1px solid rgba(255,255,255,.06);
@@ -29,163 +22,134 @@
       box-shadow:var(--shadow-soft);
     }
 
-    .tools-grid{
+    .tool-grid{
       display:grid;
       grid-template-columns: 1fr;
-      gap:14px;
-      margin-top:14px;
+      gap:18px;
+      margin-top:16px;
     }
     @media (min-width: 980px){
-      .tools-grid{ grid-template-columns: 1fr 420px; align-items:start; }
+      .tool-grid{
+        grid-template-columns: 1fr 1fr;
+        gap:22px;
+      }
     }
 
-    .tools-panel{
-      background:rgba(16,20,29,.9);
-      border:1px solid rgba(255,255,255,.06);
+    .tool-card{
+      position:relative;
+      overflow:hidden;
+      background:rgba(13,16,22,0.92);
       border-radius:var(--radius-card);
-      padding:14px;
-    }
-    .tools-panel h3{ margin:0 0 10px; font-size:1rem; letter-spacing:.03em; }
-    .tools-panel p{ margin:0 0 10px; color:var(--muted); }
-
-    .field-row{
+      border:1px solid rgba(255,255,255,.06);
+      box-shadow:var(--shadow-soft);
+      backdrop-filter:blur(18px);
+      transition:transform .22s ease, box-shadow .22s ease, border-color .22s ease;
       display:flex;
-      gap:10px;
-      flex-wrap:wrap;
+      flex-direction:column;
+      min-height: 320px;
+    }
+    .tool-card:hover{
+      transform:translateY(-6px);
+      box-shadow:0 22px 50px rgba(0,0,0,.75);
+      border-color:rgba(255,195,0,.45);
+    }
+
+    .tool-thumb{
+      height:150px;
+      border-bottom:1px solid rgba(255,255,255,.06);
+      background:
+        radial-gradient(circle at 10% 10%, rgba(255,195,0,.22), transparent 55%),
+        radial-gradient(circle at 90% 0%, rgba(255,222,106,.12), transparent 55%),
+        linear-gradient(180deg, rgba(255,255,255,.06), transparent 65%),
+        rgba(5,6,10,.55);
+      position:relative;
+    }
+
+    .tool-thumb .stamp{
+      position:absolute;
+      left:16px;
+      top:16px;
+      display:inline-flex;
       align-items:center;
-      margin:10px 0 0;
-    }
-
-    .select{
-      flex: 1 1 240px;
-      min-width: 240px;
-      background:rgba(5,6,10,.55);
-      border:1px solid rgba(255,255,255,.10);
-      border-radius:14px;
+      gap:10px;
       padding:10px 12px;
+      border-radius:999px;
+      background:rgba(5,6,10,.65);
+      border:1px solid rgba(255,255,255,.10);
       color:var(--ink);
-      font-weight:700;
-      outline:none;
-    }
-    .select:focus{ border-color: rgba(255,195,0,.7); }
-
-    .status{
-      margin-top:12px;
-      padding:12px;
-      border-radius:14px;
-      border:1px solid rgba(255,255,255,.08);
-      background:rgba(5,6,10,.55);
       font-weight:800;
       letter-spacing:.02em;
     }
-    .status.known{ border-color: rgba(80, 200, 120, .35); }
-    .status.unknown{ border-color: rgba(255, 195, 0, .35); }
-    .status.notok{ border-color: rgba(255, 80, 80, .35); }
-
-    .wiring{
-      margin-top:12px;
-      border-radius:14px;
-      border:1px solid rgba(255,255,255,.08);
-      background:rgba(5,6,10,.55);
-      padding:12px;
+    .tool-thumb .stamp .dot{
+      width:10px;
+      height:10px;
+      border-radius:99px;
+      background:var(--accent);
+      box-shadow:0 0 0 4px rgba(255,195,0,.12);
     }
 
-    .wiring-row{
+    .tool-body{
+      padding:18px;
       display:flex;
-      justify-content:space-between;
-      gap:12px;
-      padding:10px 0;
-      border-bottom:1px solid rgba(255,255,255,.06);
-      cursor:pointer;
-      user-select:none;
-    }
-    .wiring-row:last-child{ border-bottom:none; }
-    .wiring-row:hover{ opacity:.95; }
-    .w-key{ font-weight:900; }
-    .w-val{ color:var(--ink); opacity:.95; text-align:right; }
-
-    .notes{
-      margin-top:12px;
-      border-radius:14px;
-      border:1px solid rgba(255,255,255,.08);
-      background:rgba(5,6,10,.55);
-      padding:12px;
-    }
-    .notes ul{ margin:8px 0 0 18px; color:var(--muted); }
-
-    /* Combined layout: viewer + info */
-    .viewer-grid{
-      display:grid;
-      grid-template-columns: 1fr;
-      gap:14px;
-    }
-    @media (min-width: 980px){
-      .viewer-grid{ grid-template-columns: 1fr 420px; }
+      flex-direction:column;
+      gap:10px;
+      flex:1;
     }
 
-    .viewer-card{
-      background:rgba(16,20,29,.9);
-      border:1px solid rgba(255,255,255,.06);
-      border-radius:var(--radius-card);
-      padding:14px;
-      overflow:hidden;
+    .tool-body h3{
+      margin:0;
+      font-size:1.2rem;
+      letter-spacing:.02em;
+    }
+    .tool-body p{
+      margin:0;
+      color:var(--muted);
+      max-width: 60ch;
     }
 
-    model-viewer{
-      width:100%;
-      height:520px;
-      background:rgba(5,6,10,.35);
-      border-radius:18px;
-      border:1px solid rgba(255,255,255,.06);
+    .tool-meta{
+      margin-top:6px;
+      display:flex;
+      flex-wrap:wrap;
+      gap:8px;
     }
-    @media (max-width: 520px){
-      model-viewer{ height:420px; }
-    }
-
-    /* Hotspots */
-    .hotspot{
-      background:rgba(16,20,29,.92);
-      border:1px solid rgba(255,255,255,.12);
-      color:var(--ink);
+    .chip{
+      display:inline-flex;
+      align-items:center;
+      gap:8px;
+      font-size:12px;
+      font-weight:800;
       padding:7px 10px;
       border-radius:999px;
-      font-size:12px;
-      font-weight:700;
-      cursor:pointer;
-      user-select:none;
-      white-space:nowrap;
-      box-shadow:0 10px 25px rgba(0,0,0,.35);
-    }
-    .hotspot:hover{ border-color: rgba(255,195,0,.7); }
-    .hotspot:focus{ outline:2px solid var(--accent); outline-offset:2px; }
-    .kbd{
-      font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace;
-      font-size: 12px;
-      padding:2px 6px;
-      border-radius:8px;
-      border:1px solid rgba(255,255,255,.12);
-      background:rgba(5,6,10,.6);
+      background:rgba(5,6,10,.55);
+      border:1px solid rgba(255,255,255,.10);
       color:var(--ink);
     }
-    .hotspot.is-active{
-      background: rgba(255, 195, 0, 0.28);
-      box-shadow: 0 0 0 4px rgba(255,195,0,.10);
+    .chip .mini{
+      width:7px; height:7px;
+      border-radius:99px;
+      background:rgba(255,195,0,.95);
+      box-shadow:0 0 0 3px rgba(255,195,0,.10);
     }
 
-    .install-notes-box{
-      margin-top:12px;
+    .tool-actions{
+      margin-top:auto;
+      display:flex;
+      gap:10px;
+      flex-wrap:wrap;
+      padding-top:10px;
+    }
+
+    .tool-note{
+      margin-top:10px;
       border-radius:14px;
       border:1px solid rgba(255,255,255,.08);
       background:rgba(5,6,10,.55);
       padding:12px;
+      color:var(--muted);
+      font-size:.95rem;
     }
-    .install-notes-box strong{ display:block; margin-bottom:8px; }
-    .muted{ color:var(--muted); }
-
-    /* ✅ ONLY FOR QUICK WORKFLOW: force the block to use full width of the right column */
-    @media (min-width: 980px){
-      .tools-grid{ grid-template-columns: 1fr !important; }
-    }
+    .tool-note strong{ color:var(--ink); }
   </style>
 </head>
 
@@ -229,9 +193,9 @@
   <div class="hero-wrap hero-wrap-sub">
     <section class="hero hero-sub reveal">
       <div class="hero-main">
-        <div class="hero-kicker">Public Reference • Fast On-Site Lookup</div>
+        <div class="hero-kicker">Installer Tools • On-Site Utilities</div>
         <h1>Installer Tools</h1>
-        <p>Compatibility, terminal mapping, and Willex relay guidance — in one place.</p>
+        <p>Fast wiring reference + visual Wi-Fi planning — built around real call-outs and faults.</p>
       </div>
 
       <div class="hero-visual">
@@ -241,186 +205,68 @@
     </section>
   </div>
 
-  <!-- Tool -->
   <section class="section reveal">
-    <h2>Compatibility &amp; wiring lookup</h2>
-    <p class="muted">Select a brand and panel model. Click a row (OPEN/CLOSE/PED/STOP) to highlight the matching relay on the PCB.</p>
+    <h2>Choose a tool</h2>
+    <p>Two focused utilities. Pick what you need on-site — no scrolling through long pages.</p>
 
-    <div class="tools-wrap">
+    <div class="tool-hub">
+      <div class="tool-grid">
 
-      <div class="viewer-grid">
-
-        <!-- LEFT: 3D viewer + hotspots -->
-        <div class="viewer-card">
-          <h3 style="margin:0 0 10px;">Willex relay board</h3>
-          <p class="muted" style="margin:0 0 12px;">Drag to rotate • scroll/pinch to zoom • click a label for notes</p>
-
-          <model-viewer
-            id="mv"
-            src="assets/3d/willexos_v1_wb.glb"
-            camera-controls
-            environment-image="https://modelviewer.dev/shared-assets/environments/neutral.hdr"
-            shadow-intensity="1"
-            exposure="1.1"
-            touch-action="pan-y">
-
-          <button class="hotspot"
-            slot="hotspot-power"
-            data-position="33.197000m 21.395602m 14.240306m"
-            data-normal="0m 0m 1m"
-            data-note="Power In: connect 12–24V DC. Observe polarity. Fuse inline recommended.">
-            Power In
-          </button>
-
-          <button class="hotspot"
-            slot="hotspot-open"
-            data-action="open"
-            data-position="-30.616442m 14.905897m 16.040304m"
-            data-normal="0m 0m 1m"
-            data-note="OPEN relay: wire COM/NO to the gate controller OPEN input (dry contact).">
-            Relay: OPEN
-          </button>
-
-          <button class="hotspot"
-            slot="hotspot-close"
-            data-action="close"
-            data-position="-31.963730m 1.155861m 16.040303m"
-            data-normal="0m 0m 1m"
-            data-note="CLOSE relay: wire COM/NO to the gate controller CLOSE input (dry contact).">
-            Relay: CLOSE
-          </button>
-
-          <button class="hotspot"
-            slot="hotspot-ped"
-            data-action="ped"
-            data-position="-32.372404m -15.464245m 16.040303m"
-            data-normal="0m 0m 1m"
-            data-note="PED relay: wire COM/NO to the pedestrian/partial-open input (dry contact).">
-            Relay: PED
-          </button>
-
-          <button class="hotspot"
-            slot="hotspot-stop"
-            data-action="stop"
-            data-position="-28.388012m -30.271466m 16.040303m"
-            data-normal="0m 0m 1m"
-            data-note="STOP relay: wire COM/NC (or as required) for stop/safety circuit. Confirm panel logic before wiring.">
-            Relay: STOP
-          </button>
-
-          <button class="hotspot"
-            slot="hotspot-w5500"
-            data-position="19.801808m -30.372908m 6.611874m"
-            data-normal="-1m 0m 0m"
-            data-note="Ethernet module reference point.">
-            W5500 Ethernet Module
-          </button>
-
-          <button class="hotspot"
-            slot="hotspot-uln2003a"
-            data-position="1.075348m -6.515875m 2.190303m"
-            data-normal="0m 0m 1m"
-            data-note="ULN2003A driver IC.">
-            ULN2003A
-          </button>
-
-        </model-viewer>
-
-          <div class="install-notes-box">
-            <strong>Install notes</strong>
-            <div id="pcbInfo" class="muted">Select a brand + model to generate exact terminal mapping.</div>
-          </div>
-        </div>
-
-        <!-- RIGHT: selector + wiring + notes -->
-        <div class="tools-panel">
-          <h3>Select control panel</h3>
-          <div class="field-row">
-            <select id="brandSelect" class="select" aria-label="Select brand">
-              <option value="">Brand…</option>
-            </select>
-
-            <select id="modelSelect" class="select" aria-label="Select model" disabled>
-              <option value="">Model…</option>
-            </select>
+        <!-- Card 1 -->
+        <article class="tool-card">
+          <div class="tool-thumb">
+            <div class="stamp"><span class="dot"></span> Wiring Lookup</div>
           </div>
 
-          <div id="statusBox" class="status unknown" style="display:none;"></div>
+          <div class="tool-body">
+            <h3>Compatibility & wiring lookup</h3>
+            <p>Select a brand + panel model, then click OPEN/CLOSE/PED/STOP to highlight the correct relay on the 3D PCB viewer.</p>
 
-          <div id="wiringBox" class="wiring" style="display:none;">
-            <div class="wiring-row" data-action="open" title="Highlight OPEN relay on PCB" tabindex="0">
-              <div class="w-key">OPEN</div>
-              <div class="w-val" id="wOpen">—</div>
+            <div class="tool-meta">
+              <span class="chip"><span class="mini"></span> 3D PCB hotspots</span>
+              <span class="chip"><span class="mini"></span> Terminal mapping</span>
+              <span class="chip"><span class="mini"></span> Installer notes</span>
             </div>
-            <div class="wiring-row" data-action="close" title="Highlight CLOSE relay on PCB" tabindex="0">
-              <div class="w-key">CLOSE</div>
-              <div class="w-val" id="wClose">—</div>
+
+            <div class="tool-actions">
+              <a class="btn btn-primary" href="installer-tools-lookup.html"><span>Open Wiring Lookup</span></a>
+              <a class="btn btn-ghost" href="board-viewer.html"><span>Open 3D Viewer</span></a>
             </div>
-            <div class="wiring-row" data-action="ped" title="Highlight PED relay on PCB" tabindex="0">
-              <div class="w-key">PED</div>
-              <div class="w-val" id="wPed">—</div>
-            </div>
-            <div class="wiring-row" data-action="stop" title="Highlight STOP relay on PCB" tabindex="0">
-              <div class="w-key">STOP</div>
-              <div class="w-val" id="wStop">—</div>
-            </div>
-          </div>
 
-          <div id="notesBox" class="notes" style="display:none;">
-            <strong>Installer notes</strong>
-            <ul id="notesList"></ul>
-          </div>
-
-          <!-- One filled card -->
-          <div class="tools-grid" style="margin-top:14px;">
-            <div class="tools-panel" style="padding:22px;">
-              <h3 style="font-size:1.35rem; margin-bottom:16px;">Quick workflow</h3>
-
-              <div class="muted" style="margin-bottom:18px; font-size:1.10rem; line-height:1.65;">
-                <span class="kbd" style="font-size:14px; padding:4px 10px;">1</span>
-                Select <strong>Brand</strong> + <strong>Model</strong>
-                &nbsp;&nbsp;·&nbsp;&nbsp;
-                <span class="kbd" style="font-size:14px; padding:4px 10px;">2</span>
-                Click <strong>OPEN/CLOSE/PED/STOP</strong>
-                &nbsp;&nbsp;·&nbsp;&nbsp;
-                <span class="kbd" style="font-size:14px; padding:4px 10px;">3</span>
-                Wire to the terminal shown
-              </div>
-
-              <div style="display:grid; grid-template-columns:1fr; gap:14px; margin-bottom:16px;">
-                <div style="padding:18px 18px; border-radius:18px; border:1px solid rgba(255,255,255,.08); background:rgba(5,6,10,.55);">
-                  <div style="font-weight:900; margin-bottom:10px; font-size:1.08rem;">Row click</div>
-                  <div class="muted" style="font-size:1.02rem; line-height:1.6;">Highlights the matching relay label on the PCB viewer.</div>
-                </div>
-
-                <div style="padding:18px 18px; border-radius:18px; border:1px solid rgba(255,255,255,.08); background:rgba(5,6,10,.55);">
-                  <div style="font-weight:900; margin-bottom:10px; font-size:1.08rem;">Hotspot click</div>
-                  <div class="muted" style="font-size:1.02rem; line-height:1.6;">Shows quick notes for that relay or component.</div>
-                </div>
-
-                <div style="padding:18px 18px; border-radius:18px; border:1px solid rgba(255,255,255,.08); background:rgba(5,6,10,.55);">
-                  <div style="font-weight:900; margin-bottom:10px; font-size:1.08rem;">Wire type</div>
-                  <div class="muted" style="font-size:1.02rem; line-height:1.6;">All relay outputs are dry-contact. Use COM/NO or COM/NC as indicated.</div>
-                </div>
-
-                <div style="padding:18px 18px; border-radius:18px; border:1px solid rgba(255,255,255,.08); background:rgba(5,6,10,.55);">
-                  <div style="font-weight:900; margin-bottom:10px; font-size:1.08rem;">STOP caution</div>
-                  <div class="muted" style="font-size:1.02rem; line-height:1.6;">STOP is commonly NC &amp; supervised. Confirm panel logic before bypass/testing.</div>
-                </div>
-              </div>
-
-              <div style="padding:18px 18px; border-radius:18px; border:1px solid rgba(255,195,0,.25); background:rgba(255,195,0,.08);">
-                <div style="font-weight:900; margin-bottom:8px; font-size:1.08rem;">Unconfirmed entries</div>
-                <div class="muted" style="font-size:1.02rem; line-height:1.6;">Use as a lead — always verify against the panel terminal legend on-site.</div>
-              </div>
-
+            <div class="tool-note">
+              <strong>Best for:</strong> quick relay mapping during installs, swaps, and fault call-outs.
             </div>
           </div>
+        </article>
 
-        </div>
+        <!-- Card 2 -->
+        <article class="tool-card">
+          <div class="tool-thumb">
+            <div class="stamp"><span class="dot"></span> Wi-Fi Mapper</div>
+          </div>
+
+          <div class="tool-body">
+            <h3>Wi-Fi Coverage Mapper (V4)</h3>
+            <p>Plan AP placement visually, add obstacles, snap/nudge, rotate, and measure distances on a scaled site map.</p>
+
+            <div class="tool-meta">
+              <span class="chip"><span class="mini"></span> Mobile friendly</span>
+              <span class="chip"><span class="mini"></span> Snap + nudge</span>
+              <span class="chip"><span class="mini"></span> Measure tool</span>
+            </div>
+
+            <div class="tool-actions">
+              <a class="btn btn-primary" href="WIFI-Mapper-V4.html"><span>Open Wi-Fi Mapper</span></a>
+              <a class="btn btn-ghost" href="WIFI-Mapper-V4.html#export"><span>Export / Report</span></a>
+            </div>
+
+            <div class="tool-note">
+              <strong>Best for:</strong> gates, Wi-Fi doorbells, Wi-Fi intercoms — anything that dies from weak RSSI.
+            </div>
+          </div>
+        </article>
 
       </div>
-
     </div>
   </section>
 

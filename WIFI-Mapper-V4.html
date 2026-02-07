@@ -1,0 +1,1734 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <title>Willex OS — Wi-Fi Coverage Mapper</title>
+
+  <!-- Match site chrome -->
+  <link rel="icon" href="assets/img/willex-logo.png">
+  <link rel="stylesheet" href="assets/css/style.css">
+  <script defer src="assets/js/script.js"></script>
+
+  <style>
+    /* -------------------------------------------------------
+       PAGE-SPECIFIC STYLES (kept minimal, inherit site theme)
+       ------------------------------------------------------- */
+
+    /* Use your section rhythm but allow full-height tool */
+    .mapper-wrap{
+      padding: 26px 18px 40px;
+    }
+    .mapper-head{
+      display:flex;
+      align-items:flex-end;
+      justify-content:space-between;
+      gap:14px;
+      margin-bottom:14px;
+    }
+    .mapper-head h1{
+      margin:0;
+      font-size: clamp(20px, 2.2vw, 28px);
+      letter-spacing: .2px;
+    }
+    .mapper-sub{
+      margin:6px 0 0;
+      opacity:.8;
+      max-width: 72ch;
+    }
+    .mapper-badges{
+      display:flex;
+      gap:10px;
+      flex-wrap:wrap;
+      justify-content:flex-end;
+    }
+    .mapper-badge{
+      display:inline-flex;
+      align-items:center;
+      gap:8px;
+      padding:10px 12px;
+      border-radius: 999px;
+      background: rgba(255,255,255,0.06);
+      border: 1px solid rgba(255,255,255,0.10);
+      font-weight: 700;
+      font-size: 12px;
+      white-space: nowrap;
+    }
+
+    /* Desktop tool layout */
+    .mapper-grid{
+      display:grid;
+      grid-template-columns: 360px 1fr 360px;
+      gap:14px;
+      align-items:stretch;
+      min-height: calc(100vh - 120px);
+    }
+
+    /* Panels styled like site cards */
+    .tool-panel.card{
+      padding: 14px;
+      height: calc(100vh - 190px);
+      overflow:auto;
+      position: sticky;
+      top: 92px;
+    }
+    .tool-panel h3{
+      margin: 4px 0 10px;
+      font-size: 13px;
+      letter-spacing: .35px;
+      text-transform: uppercase;
+      opacity: .9;
+    }
+    .tool-panel .hint{
+      margin: 10px 0 0;
+      font-size: 12px;
+      opacity: .75;
+      line-height: 1.35;
+    }
+
+    .field{
+      margin: 10px 0;
+    }
+    .field label{
+      display:block;
+      font-size: 12px;
+      opacity:.8;
+      margin: 0 0 6px;
+      font-weight: 700;
+    }
+    .field select,
+    .field input[type="number"],
+    .field input[type="range"]{
+      width:100%;
+      padding: 10px 10px;
+      border-radius: 12px;
+      background: rgba(0,0,0,0.18);
+      border: 1px solid rgba(255,255,255,0.12);
+      color: inherit;
+      outline: none;
+    }
+    .row2{
+      display:grid;
+      grid-template-columns: 1fr 1fr;
+      gap:10px;
+    }
+    .btnrow{
+      display:flex;
+      gap:10px;
+      flex-wrap: wrap;
+      margin-top: 10px;
+    }
+    .btnrow .btn{
+      padding: 10px 12px;
+      border-radius: 12px;
+      font-weight: 800;
+      font-size: 12px;
+      cursor:pointer;
+      border: 1px solid rgba(255,255,255,0.10);
+      background: rgba(255,255,255,0.05);
+      color: inherit;
+      user-select:none;
+    }
+    .btnrow .btn.primary{
+      background: rgba(174,243,89,0.16);
+      border-color: rgba(174,243,89,0.34);
+    }
+    .btnrow .btn.danger{
+      background: rgba(255,90,90,0.14);
+      border-color: rgba(255,90,90,0.30);
+    }
+
+    /* Canvas card */
+    .map-card.card{
+      padding: 0;
+      overflow:hidden;
+      height: calc(100vh - 190px);
+      position: sticky;
+      top: 92px;
+    }
+    .map-topbar{
+      display:flex;
+      align-items:center;
+      justify-content:space-between;
+      gap:10px;
+      padding: 12px 14px;
+      border-bottom: 1px solid rgba(255,255,255,0.10);
+      background: rgba(0,0,0,0.10);
+    }
+    .map-topbar strong{
+      font-size: 12px;
+      letter-spacing: .25px;
+      text-transform: uppercase;
+      opacity: .9;
+    }
+    .map-topbar .mini{
+      font-size: 12px;
+      opacity: .75;
+      display:flex;
+      gap:10px;
+      flex-wrap:wrap;
+      justify-content:flex-end;
+    }
+
+    .canvasWrap{
+      position:relative;
+      height: 100%;
+    }
+    canvas{
+      width:100%;
+      height: calc(100% - 0px);
+      display:block;
+      background: radial-gradient(900px 600px at 25% 20%, rgba(174,243,89,0.06), transparent 55%),
+                  radial-gradient(700px 520px at 78% 20%, rgba(125,255,178,0.05), transparent 58%),
+                  rgba(0,0,0,0.25);
+    }
+    .overlayHelp{
+      position:absolute;
+      left:14px;
+      bottom: calc(64px + 22px);
+      background: rgba(0,0,0,0.35);
+      border:1px solid rgba(255,255,255,0.10);
+      border-radius: 14px;
+      padding: 10px 12px;
+      font-size: 12px;
+      opacity: .85;
+      max-width: 560px;
+      pointer-events:none;
+      line-height:1.3;
+    }
+    .pill{
+      display:inline-block;
+      padding: 2px 8px;
+      border-radius: 999px;
+      border: 1px solid rgba(255,255,255,0.12);
+      background: rgba(255,255,255,0.06);
+      margin-right: 6px;
+      font-weight: 800;
+      font-size: 11px;
+    }
+
+    .kpi{
+      display:grid;
+      grid-template-columns: 1fr 1fr;
+      gap:10px;
+      margin-top:10px;
+    }
+    .kpi .kcard{
+      border-radius: 14px;
+      padding: 10px;
+      background: rgba(0,0,0,0.18);
+      border: 1px solid rgba(255,255,255,0.10);
+    }
+    .kpi .small{ font-size: 12px; opacity: .75; }
+    .kpi .big{ font-size: 18px; font-weight: 900; margin-top:2px; }
+
+    .legend{
+      margin-top:10px;
+      display:grid;
+      gap:8px;
+      font-size: 12px;
+      opacity:.85;
+    }
+    .swatch{ display:flex; align-items:center; gap:8px; }
+    .box{
+      width:14px; height:14px;
+      border-radius: 5px;
+      border: 1px solid rgba(255,255,255,0.16);
+      background: rgba(255,255,255,0.08);
+    }
+
+    /* Mobile: bottom bar + sheet */
+    .mobile-toolsbar,
+    .mobile-sheet,
+    .mobile-backdrop{ display:none; }
+
+    @media (max-width: 980px){
+      .mapper-grid{
+        grid-template-columns: 1fr;
+        min-height: auto;
+      }
+      .tool-panel.card{ display:none; }
+      .map-card.card{
+        height: calc(100vh - 170px);
+        position: relative;
+        top: auto;
+      }
+
+      .mobile-toolsbar{ display:flex; }
+      .mobile-sheet{ display:block; }
+      .mobile-backdrop{ display:block; }
+
+      .mobile-toolsbar{
+        position: fixed;
+        left:0; right:0; bottom:0;
+        height: 64px;
+        padding: 8px;
+        display:flex;
+        gap:8px;
+        background: rgba(0,0,0,0.65);
+        backdrop-filter: blur(10px);
+        border-top: 1px solid rgba(255,255,255,0.10);
+        z-index: 50;
+      }
+      .mobile-toolsbar button{
+        flex:1;
+        border-radius: 14px;
+        padding: 10px 10px;
+        font-weight: 900;
+        font-size: 12px;
+        border: 1px solid rgba(255,255,255,0.12);
+        background: rgba(255,255,255,0.06);
+        color: inherit;
+        cursor:pointer;
+      }
+      .mobile-toolsbar button.primary{
+        background: rgba(174,243,89,0.18);
+        border-color: rgba(174,243,89,0.34);
+      }
+
+      .mobile-backdrop{
+        position: fixed;
+        inset:0;
+        background: rgba(0,0,0,0.45);
+        z-index: 60;
+        opacity:0;
+        pointer-events:none;
+        transition: opacity .18s ease;
+      }
+      .mobile-backdrop.open{
+        opacity:1;
+        pointer-events:auto;
+      }
+
+      .mobile-sheet{
+        position: fixed;
+        left:0; right:0; bottom:0;
+        z-index: 70;
+        transform: translateY(110%);
+        transition: transform .22s ease;
+        border-top-left-radius: 18px;
+        border-top-right-radius: 18px;
+        background: rgba(0,0,0,0.80);
+        backdrop-filter: blur(10px);
+        border: 1px solid rgba(255,255,255,0.12);
+        box-shadow: 0 -20px 60px rgba(0,0,0,0.55);
+        max-height: 78vh;
+        display:flex;
+        flex-direction: column;
+        overflow:hidden;
+      }
+      .mobile-sheet.open{ transform: translateY(0); }
+
+      .sheet-handle{
+        padding: 12px 14px;
+        border-bottom: 1px solid rgba(255,255,255,0.10);
+        display:flex;
+        align-items:center;
+        justify-content:space-between;
+        gap:10px;
+      }
+      .sheet-title{ font-weight: 950; letter-spacing:.2px; }
+      .sheet-close{
+        border-radius: 12px;
+        padding: 8px 10px;
+        border: 1px solid rgba(255,255,255,0.12);
+        background: rgba(255,255,255,0.06);
+        color: inherit;
+        cursor:pointer;
+        font-weight: 900;
+      }
+      .grab{
+        width:44px; height:5px;
+        border-radius: 999px;
+        background: rgba(255,255,255,0.18);
+        margin: 6px auto 0;
+      }
+      .sheet-tabs{
+        display:flex;
+        gap:8px;
+        padding: 10px 12px;
+        border-bottom: 1px solid rgba(255,255,255,0.10);
+        overflow:auto;
+      }
+      .sheet-tab{
+        border-radius: 999px;
+        padding: 8px 10px;
+        font-size: 12px;
+        font-weight: 950;
+        border: 1px solid rgba(255,255,255,0.12);
+        background: rgba(255,255,255,0.06);
+        color: inherit;
+        cursor:pointer;
+        flex: 0 0 auto;
+      }
+      .sheet-tab.active{
+        background: rgba(174,243,89,0.18);
+        border-color: rgba(174,243,89,0.34);
+      }
+      .sheet-body{
+        overflow:auto;
+        padding: 14px 12px 18px;
+      }
+      .sheet-pane{ display:none; }
+      .sheet-pane.active{ display:block; }
+    }
+  </style>
+</head>
+
+<body data-page="installertools">
+
+<!-- -----------------------------------------------------
+     HEADER (matches your site)
+------------------------------------------------------ -->
+<header class="nav-header">
+  <div class="brand">
+    <img src="assets/img/willex-logo.png" alt="Willex OS">
+    <span>Willex OS</span>
+  </div>
+
+  <nav class="desktop-nav">
+    <a href="index.html" data-page="home">Home</a>
+    <a href="about.html" data-page="about">About</a>
+    <a href="contact.html" data-page="contact">Contact</a>
+
+    <a href="index.html#why">Why Willex OS</a>
+    <a href="index.html#install">Installation</a>
+    <a href="installer-tools.html" data-page="installertools">Installer Tools</a>
+
+    <a href="index.html#support">Trade Support</a>
+  </nav>
+
+  <button class="hamburger" type="button" aria-label="Toggle menu">
+    <span></span><span></span><span></span>
+  </button>
+</header>
+
+<!-- Mobile Menu -->
+<nav id="mobileMenu" class="mobile-menu" aria-label="Mobile navigation">
+  <a href="index.html">Home</a>
+  <a href="about.html">About</a>
+  <a href="contact.html">Contact</a>
+  <a href="index.html#why">Why Willex OS</a>
+  <a href="index.html#install">Installation</a>
+  <a href="installer-tools.html">Installer Tools</a>
+  <a href="index.html#support">Trade Support</a>
+</nav>
+
+<!-- -----------------------------------------------------
+     CONTENT
+------------------------------------------------------ -->
+<div class="mapper-wrap">
+  <section class="section reveal" style="padding-top:0;">
+    <div class="mapper-head">
+      <div>
+        <div class="hero-kicker" style="margin-bottom:6px;">Installer Tools • Planning</div>
+        <h1>Wi-Fi Coverage Mapper</h1>
+        <p class="mapper-sub">
+          Quick, visual range planning for Willex OS installs — place an AP, add obstacles,
+          then validate RSSI at multiple devices (gate controller, Wi-Fi doorbell, Wi-Fi intercom).
+        </p>
+      </div>
+      <div class="mapper-badges">
+        <div class="mapper-badge">Drag markers • Add obstacles</div>
+        <div class="mapper-badge">Snap / nudge / rotate • Measure tool</div>
+        <div class="mapper-badge">Export PNG</div>
+      </div>
+    </div>
+
+    <div class="mapper-grid">
+      <!-- LEFT PANEL -->
+      <aside class="tool-panel card">
+        <div class="card-shine"></div>
+
+        <h3>Template</h3>
+        <div class="field">
+          <label>Site layout template</label>
+          <select id="template">
+            <option value="blank">Blank plan</option>
+            <option value="swing">Swing gate (typical)</option>
+            <option value="sliding">Sliding gate (typical)</option>
+            <option value="barrier">Barrier (typical)</option>
+          </select>
+        </div>
+
+        <div class="row2">
+          <div class="field">
+            <label>Width (m)</label>
+            <input id="siteW" type="number" min="6" max="200" value="30" />
+          </div>
+          <div class="field">
+            <label>Height (m)</label>
+            <input id="siteH" type="number" min="6" max="200" value="20" />
+          </div>
+        </div>
+
+        <div class="btnrow">
+          <button class="btn primary" id="applyTemplate">Apply</button>
+          <button class="btn" id="resetAll">Reset</button>
+        </div>
+
+        <p class="hint">
+          This is an installer planning tool: approximate path loss + simple obstacle attenuation.
+        </p>
+
+        <div style="height:14px;"></div>
+
+        <h3>Wi-Fi model</h3>
+
+        <div class="field">
+          <label>Band</label>
+          <select id="band">
+            <option value="24">2.4 GHz (better range)</option>
+            <option value="5">5 GHz (worse through walls)</option>
+          </select>
+        </div>
+
+        <div class="row2">
+          <div class="field">
+            <label>AP Tx @1m (dBm)</label>
+            <input id="tx1m" type="number" min="-90" max="-10" value="-30" />
+          </div>
+          <div class="field">
+            <label>Path loss exponent (n)</label>
+            <input id="ple" type="number" step="0.1" min="1.6" max="4.5" value="2.4" />
+          </div>
+        </div>
+
+        <div class="field">
+          <label>Minimum target RSSI</label>
+          <select id="target">
+            <option value="-67">-67 dBm (good)</option>
+            <option value="-70" selected>-70 dBm (ok)</option>
+            <option value="-75">-75 dBm (marginal)</option>
+            <option value="-80">-80 dBm (bad)</option>
+          </select>
+        </div>
+
+        <div class="field">
+          <label>Heatmap resolution</label>
+          <input id="res" type="range" min="2" max="12" value="6" />
+          <div class="hint">Higher = smoother, heavier on CPU.</div>
+        </div>
+
+        <div class="kpi">
+          <div class="kcard">
+            <div class="small">Selected device RSSI</div>
+            <div class="big" id="selRssi">—</div>
+          </div>
+          <div class="kcard">
+            <div class="small">Status vs target</div>
+            <div class="big" id="selStatus">—</div>
+          </div>
+        </div>
+
+        <div class="legend">
+          <div class="swatch"><span class="box" style="background: rgba(125,255,178,0.35);"></span> Strong (≥ -67)</div>
+          <div class="swatch"><span class="box" style="background: rgba(255,211,106,0.35);"></span> OK (≥ -70)</div>
+          <div class="swatch"><span class="box" style="background: rgba(255,90,90,0.35);"></span> Weak (≥ -80)</div>
+          <div class="swatch"><span class="box" style="background: rgba(140,150,160,0.25);"></span> Dead (&lt; -80)</div>
+        </div>
+      </aside>
+
+      <!-- MAP -->
+      <section class="map-card card">
+        <div class="card-shine"></div>
+
+        <div class="map-topbar">
+          <div>
+            <strong id="mapTitle">Plan view</strong>
+          </div>
+          <div class="mini">
+            <span id="selLabel">Selected: —</span>
+            <span>Shift+Drag pan • Wheel zoom</span>
+          </div>
+        </div>
+
+        <div class="canvasWrap">
+          <canvas id="c"></canvas>
+          <div class="overlayHelp" id="helpBox">
+            <div><span class="pill">Drag</span> AP + device markers</div>
+            <div><span class="pill">Tap</span> to select marker/obstacle • <span class="pill">Del</span> to delete obstacle</div>
+            <div><span class="pill">Measure</span> then tap two points/objects</div>
+          </div>
+        </div>
+      </section>
+
+      <!-- RIGHT PANEL -->
+      <aside class="tool-panel card">
+        <div class="card-shine"></div>
+
+        <h3>Devices</h3>
+        <div class="field">
+          <label>Add device</label>
+          <select id="devType">
+            <option value="gate" selected>Gate Controller</option>
+            <option value="doorbell">Wi-Fi Doorbell</option>
+            <option value="intercom">Wi-Fi Intercom</option>
+          </select>
+        </div>
+
+        <div class="btnrow">
+          <button class="btn primary" id="addDevice">Add</button>
+          <button class="btn danger" id="clearDevices">Clear devices</button>
+        </div>
+
+        <p class="hint">
+          Tap a device marker to select it (RSSI + PASS/MARGINAL/FAIL updates on the left).
+        </p>
+
+        <div style="height:14px;"></div>
+
+        <h3>Controls</h3>
+        <div class="row2">
+          <div class="field">
+            <label>Snap to grid</label>
+            <select id="snapOn">
+              <option value="1" selected>On</option>
+              <option value="0">Off</option>
+            </select>
+          </div>
+          <div class="field">
+            <label>Grid step (m)</label>
+            <select id="snapStep">
+              <option value="0.1">0.1</option>
+              <option value="0.25" selected>0.25</option>
+              <option value="0.5">0.5</option>
+              <option value="1">1.0</option>
+            </select>
+          </div>
+        </div>
+
+        <div class="field">
+          <label>Nudge selected (AP/device/obstacle)</label>
+          <div class="btnrow">
+            <button class="btn" id="nudgeUp">↑</button>
+            <button class="btn" id="nudgeLeft">←</button>
+            <button class="btn" id="nudgeRight">→</button>
+            <button class="btn" id="nudgeDown">↓</button>
+          </div>
+        </div>
+
+        <div class="field">
+          <label>Rotate selected obstacle</label>
+          <div class="btnrow">
+            <button class="btn" id="rotLeft">⟲ -15°</button>
+            <button class="btn" id="rotRight">⟳ +15°</button>
+            <button class="btn" id="rotZero">0°</button>
+          </div>
+        </div>
+
+        <div class="field">
+          <label>Measure tool</label>
+          <div class="btnrow">
+            <button class="btn primary" id="measureBtn">Measure</button>
+            <button class="btn" id="measureClear">Clear</button>
+          </div>
+          <div class="hint">Tap two points, or tap two obstacles, to measure meters.</div>
+        </div>
+
+        <div style="height:14px;"></div>
+
+        <h3>Obstacles</h3>
+        <div class="field">
+          <label>Add obstacle</label>
+          <select id="obType">
+            <option value="wall">Wall (drywall/brick mix)</option>
+            <option value="building">Building block (thicker)</option>
+            <option value="metal">Metal fence / cladding</option>
+          </select>
+        </div>
+
+        <div class="row2">
+          <div class="field">
+            <label>Width (m)</label>
+            <input id="obW" type="number" min="0.2" step="0.1" value="6" />
+          </div>
+          <div class="field">
+            <label>Height (m)</label>
+            <input id="obH" type="number" min="0.2" step="0.1" value="0.4" />
+          </div>
+        </div>
+
+        <div class="btnrow">
+          <button class="btn primary" id="addObstacle">Add</button>
+          <button class="btn danger" id="clearObstacles">Clear</button>
+        </div>
+
+        <p class="hint">
+          Click obstacle to select it. Drag to move. Corner resize works only when angle is 0°. Press <span class="pill">Del</span> to delete.
+        </p>
+
+        <div style="height:14px;"></div>
+
+        <h3>Export</h3>
+        <div class="btnrow">
+          <button class="btn primary" id="exportPng">Export PNG</button>
+          <button class="btn" id="toggleRings">Toggle rings</button>
+          <button class="btn" id="toggleHeat">Toggle heatmap</button>
+        </div>
+      </aside>
+    </div>
+  </section>
+</div>
+
+<!-- Mobile tools UI -->
+<div class="mobile-toolsbar" id="mobileBar">
+  <button class="primary" data-open="template">Template</button>
+  <button data-open="wifi">Wi-Fi</button>
+  <button data-open="site">Site</button>
+  <button data-open="export">Export</button>
+</div>
+
+<div class="mobile-backdrop" id="mobileBackdrop"></div>
+
+<div class="mobile-sheet" id="mobileSheet" aria-hidden="true">
+  <div class="sheet-handle">
+    <div>
+      <div class="sheet-title" id="sheetTitle">Tools</div>
+      <div class="grab"></div>
+    </div>
+    <button class="sheet-close" id="sheetClose">Close</button>
+  </div>
+
+  <div class="sheet-tabs" id="sheetTabs">
+    <button class="sheet-tab active" data-pane="template">Template</button>
+    <button class="sheet-tab" data-pane="wifi">Wi-Fi</button>
+    <button class="sheet-tab" data-pane="site">Site</button>
+    <button class="sheet-tab" data-pane="export">Export</button>
+  </div>
+
+  <div class="sheet-body">
+    <div class="sheet-pane active" id="pane-template"></div>
+    <div class="sheet-pane" id="pane-wifi"></div>
+    <div class="sheet-pane" id="pane-site"></div>
+    <div class="sheet-pane" id="pane-export"></div>
+  </div>
+</div>
+
+<!-- Floating support button (matches your site pattern) -->
+<button class="support-fab" type="button" aria-label="Open support panel">
+  <img src="assets/img/willex-logo.png" alt="Willex OS support">
+</button>
+<div class="support-panel" aria-hidden="true">
+  <h3>Need help?</h3>
+  <p>Quick links for installers and partners.</p>
+  <ul>
+    <li note><a href="installer-tools.html">Installer Tools</a></li>
+    <li><a href="contact.html">Contact page</a></li>
+    <li><a href="mailto:support@willex.example">support@willex.example</a></li>
+  </ul>
+</div>
+
+<footer>
+  © <span id="year"></span> Willex OS — Installer Edition
+  · Professional installation required for powered gates.
+</footer>
+
+<script>
+(() => {
+  // ---------- Utilities ----------
+  const clamp = (v, a, b) => Math.max(a, Math.min(b, v));
+  const dist = (ax, ay, bx, by) => Math.hypot(ax-bx, ay-by);
+  const lerp = (a,b,t) => a + (b-a)*t;
+
+  // ---------- State ----------
+  const state = {
+    siteW: 30,
+    siteH: 20,
+
+    ap: { x: 6, y: 10 },
+
+    // multiple devices
+    devices: [
+      { id: 1, type: "gate", x: 24, y: 10 }
+    ],
+    nextDevId: 2,
+
+    obstacles: [],
+    nextObsId: 1,
+
+    // selection can be: "ap" | {devId} | {obsId}
+    selected: "ap",
+
+    showRings: true,
+    showHeat: true,
+
+    snapOn: true,
+    snapStep: 0.25,
+
+    measure: { active:false, p1:null, p2:null },
+
+    cam: { x:0, y:0, zoom:1.0 }
+  };
+
+  function snapVal(v){
+    if (!state.snapOn) return v;
+    const s = state.snapStep || 0.25;
+    return Math.round(v / s) * s;
+  }
+  function snapPoint(p){
+    return { x: snapVal(p.x), y: snapVal(p.y) };
+  }
+
+  function typeLabel(t){
+    if (t === "gate") return "Gate Controller";
+    if (t === "doorbell") return "Wi-Fi Doorbell";
+    if (t === "intercom") return "Wi-Fi Intercom";
+    return "Device";
+  }
+
+  // Very simple color mapping
+  function rssiToRGBA(rssi){
+    if (rssi >= -67) return [125,255,178, 90];
+    if (rssi >= -70) return [255,211,106, 85];
+    if (rssi >= -80) return [255,90,90, 80];
+    return [140,150,160, 55];
+  }
+
+  // Obstacle attenuation model
+  function obstacleLoss(type, band){
+    const mult = (band === "5") ? 1.35 : 1.0;
+    if (type === "wall")     return 6 * mult;
+    if (type === "building") return 12 * mult;
+    if (type === "metal")    return 18 * mult;
+    return 0;
+  }
+
+  // Segment-rectangle intersection check (approx sampling)
+  function segmentIntersectsRect(x1,y1,x2,y2, r){
+    const steps = 18;
+    for (let i=0;i<=steps;i++){
+      const t = i/steps;
+      const x = lerp(x1,x2,t), y = lerp(y1,y2,t);
+      if (x >= r.x && x <= r.x+r.w && y >= r.y && y <= r.y+r.h) return true;
+    }
+    return false;
+  }
+
+  // ---------- DOM ----------
+  const $ = (id) => document.getElementById(id);
+
+  const c = $("c");
+  const ctx = c.getContext("2d");
+
+  const template = $("template");
+  const siteW = $("siteW");
+  const siteH = $("siteH");
+  const applyTemplate = $("applyTemplate");
+  const resetAll = $("resetAll");
+
+  const band = $("band");
+  const tx1m = $("tx1m");
+  const ple = $("ple");
+  const target = $("target");
+  const res = $("res");
+
+  const devType = $("devType");
+  const addDevice = $("addDevice");
+  const clearDevices = $("clearDevices");
+
+  const obType = $("obType");
+  const obW = $("obW");
+  const obH = $("obH");
+  const addObstacle = $("addObstacle");
+  const clearObstacles = $("clearObstacles");
+
+  const exportPng = $("exportPng");
+  const toggleRings = $("toggleRings");
+  const toggleHeat = $("toggleHeat");
+
+  const snapOnSel = $("snapOn");
+  const snapStepSel = $("snapStep");
+
+  const nudgeUp = $("nudgeUp");
+  const nudgeDown = $("nudgeDown");
+  const nudgeLeft = $("nudgeLeft");
+  const nudgeRight = $("nudgeRight");
+
+  const rotLeft = $("rotLeft");
+  const rotRight = $("rotRight");
+  const rotZero = $("rotZero");
+
+  const measureBtn = $("measureBtn");
+  const measureClear = $("measureClear");
+
+  const selRssi = $("selRssi");
+  const selStatus = $("selStatus");
+  const selLabel = $("selLabel");
+
+  // ---------- Canvas sizing ----------
+  function resize(){
+    const dpr = window.devicePixelRatio || 1;
+    const rect = c.getBoundingClientRect();
+    c.width = Math.floor(rect.width * dpr);
+    c.height = Math.floor(rect.height * dpr);
+    ctx.setTransform(dpr,0,0,dpr,0,0);
+    draw();
+  }
+  window.addEventListener("resize", resize);
+
+  // ---------- World <-> Screen ----------
+  function worldToScreen(wx, wy){
+    const rect = c.getBoundingClientRect();
+    const pad = 30;
+    const baseScale = Math.min((rect.width - pad*2) / state.siteW, (rect.height - pad*2) / state.siteH);
+    const scale = baseScale * state.cam.zoom;
+
+    const sx = pad + wx * scale + state.cam.x;
+    const sy = pad + wy * scale + state.cam.y;
+    return { sx, sy, scale, pad };
+  }
+  function screenToWorld(sx, sy){
+    const rect = c.getBoundingClientRect();
+    const pad = 30;
+    const baseScale = Math.min((rect.width - pad*2) / state.siteW, (rect.height - pad*2) / state.siteH);
+    const scale = baseScale * state.cam.zoom;
+
+    const wx = (sx - pad - state.cam.x) / scale;
+    const wy = (sy - pad - state.cam.y) / scale;
+    return { wx, wy, scale, pad };
+  }
+
+  // ---------- RF model ----------
+  function estimateRSSIAt(wx, wy){
+    const tx = parseFloat(tx1m.value);
+    const n = parseFloat(ple.value);
+    const b = band.value;
+
+    const d = Math.max(1, dist(wx, wy, state.ap.x, state.ap.y));
+    let rssi = tx - (10 * n * Math.log10(d));
+
+    for (const ob of state.obstacles){
+      if (segmentIntersectsRect(state.ap.x, state.ap.y, wx, wy, ob)){
+        rssi -= obstacleLoss(ob.type, b);
+      }
+    }
+    return rssi;
+  }
+
+  function statusFor(rssi){
+    const t = parseFloat(target.value);
+    if (rssi >= t) return { label:"PASS", color:"rgb(125,255,178)" };
+    const delta = rssi - t;
+    if (delta >= -3) return { label:"MARGINAL", color:"rgb(255,211,106)" };
+    return { label:"FAIL", color:"rgb(255,90,90)" };
+  }
+
+  // ---------- Drawing ----------
+  function clear(){
+    ctx.clearRect(0,0,c.width,c.height);
+  }
+
+  function drawGrid(){
+    const { scale } = worldToScreen(0,0);
+
+    const p1 = worldToScreen(0,0);
+    const p2 = worldToScreen(state.siteW, state.siteH);
+
+    ctx.save();
+    ctx.globalAlpha = 0.18;
+    ctx.strokeStyle = "rgba(255,255,255,0.25)";
+    ctx.lineWidth = 1;
+
+    const stepM = (scale < 22) ? 2 : 1;
+    for (let x=0; x<=state.siteW; x+=stepM){
+      const a = worldToScreen(x,0), b = worldToScreen(x,state.siteH);
+      ctx.beginPath(); ctx.moveTo(a.sx,a.sy); ctx.lineTo(b.sx,b.sy); ctx.stroke();
+    }
+    for (let y=0; y<=state.siteH; y+=stepM){
+      const a = worldToScreen(0,y), b = worldToScreen(state.siteW,y);
+      ctx.beginPath(); ctx.moveTo(a.sx,a.sy); ctx.lineTo(b.sx,b.sy); ctx.stroke();
+    }
+    ctx.restore();
+
+    ctx.save();
+    ctx.strokeStyle = "rgba(174,243,89,0.35)";
+    ctx.lineWidth = 2;
+    ctx.strokeRect(p1.sx, p1.sy, (p2.sx - p1.sx), (p2.sy - p1.sy));
+    ctx.restore();
+
+    ctx.save();
+    ctx.fillStyle = "rgba(255,255,255,0.75)";
+    ctx.font = "12px system-ui, -apple-system, Segoe UI, Roboto, Arial";
+    ctx.fillText(`${state.siteW}m × ${state.siteH}m`, p1.sx, p1.sy - 10);
+    ctx.restore();
+  }
+
+  function drawHeatmap(){
+    if (!state.showHeat) return;
+
+    const { scale } = worldToScreen(0,0);
+    const cellPx = parseInt(res.value, 10) * 10;
+    const cellWorld = cellPx / scale;
+
+    for (let y=0; y<state.siteH; y+=cellWorld){
+      for (let x=0; x<state.siteW; x+=cellWorld){
+        const rssi = estimateRSSIAt(x + cellWorld/2, y + cellWorld/2);
+        const [R,G,B,A] = rssiToRGBA(rssi);
+        const s = worldToScreen(x,y);
+        ctx.fillStyle = `rgba(${R},${G},${B},${A/255})`;
+        ctx.fillRect(s.sx, s.sy, cellWorld*scale + 1, cellWorld*scale + 1);
+      }
+    }
+  }
+
+  function drawRings(){
+    if (!state.showRings) return;
+
+    const tx = parseFloat(tx1m.value);
+    const n = parseFloat(ple.value);
+
+    function ringFor(th){
+      const logd = (tx - th) / (10*n);
+      return Math.pow(10, logd);
+    }
+
+    const rings = [
+      { th:-67, label:"-67", alpha:0.22 },
+      { th:-70, label:"-70", alpha:0.18 },
+      { th:-80, label:"-80", alpha:0.14 },
+    ];
+
+    const apS = worldToScreen(state.ap.x, state.ap.y);
+    const scale = apS.scale;
+
+    ctx.save();
+    ctx.lineWidth = 2;
+    ctx.setLineDash([6,6]);
+
+    for (const r of rings){
+      const d = ringFor(r.th);
+      const rad = d * scale;
+      ctx.strokeStyle = `rgba(255,255,255,${r.alpha})`;
+      ctx.beginPath();
+      ctx.arc(apS.sx, apS.sy, rad, 0, Math.PI*2);
+      ctx.stroke();
+
+      ctx.fillStyle = `rgba(255,255,255,${r.alpha + 0.18})`;
+      ctx.font = "12px system-ui, -apple-system, Segoe UI, Roboto, Arial";
+      ctx.fillText(r.label, apS.sx + rad + 6, apS.sy + 4);
+    }
+
+    ctx.restore();
+  }
+
+  function drawObstacles(){
+    for (const ob of state.obstacles){
+      const cx = ob.x + ob.w/2;
+      const cy = ob.y + ob.h/2;
+      const cS = worldToScreen(cx, cy);
+      const scale = cS.scale;
+
+      let fill = "rgba(255,255,255,0.06)";
+      let stroke = "rgba(255,255,255,0.14)";
+      if (ob.type === "wall"){ fill = "rgba(174,243,89,0.06)"; stroke = "rgba(174,243,89,0.22)"; }
+      if (ob.type === "building"){ fill = "rgba(255,211,106,0.06)"; stroke = "rgba(255,211,106,0.22)"; }
+      if (ob.type === "metal"){ fill = "rgba(255,90,90,0.06)"; stroke = "rgba(255,90,90,0.22)"; }
+
+      const wPx = ob.w * scale;
+      const hPx = ob.h * scale;
+
+      ctx.save();
+      ctx.translate(cS.sx, cS.sy);
+      ctx.rotate((ob.a || 0) * Math.PI / 180);
+
+      ctx.fillStyle = fill;
+      ctx.strokeStyle = stroke;
+      ctx.lineWidth = 2;
+
+      ctx.fillRect(-wPx/2, -hPx/2, wPx, hPx);
+      ctx.strokeRect(-wPx/2, -hPx/2, wPx, hPx);
+
+      ctx.fillStyle = "rgba(255,255,255,0.75)";
+      ctx.font = "12px system-ui, -apple-system, Segoe UI, Roboto, Arial";
+      const name = ob.type === "wall" ? "Wall" : ob.type === "building" ? "Building" : "Metal";
+      ctx.fillText(`${name} (${(ob.a||0)}°)`, -wPx/2 + 6, -hPx/2 + 16);
+
+      const isSel = (typeof state.selected === "object" && state.selected.obsId === ob.id);
+      if (isSel){
+        ctx.strokeStyle = "rgba(174,243,89,0.75)";
+        ctx.setLineDash([4,3]);
+        ctx.strokeRect(-wPx/2 - 3, -hPx/2 - 3, wPx + 6, hPx + 6);
+      }
+
+      ctx.restore();
+    }
+  }
+
+  function drawMeasure(){
+    const m = state.measure;
+    if (!m.p1) return;
+
+    const p1 = worldToScreen(m.p1.x, m.p1.y);
+    const p2 = m.p2 ? worldToScreen(m.p2.x, m.p2.y) : p1;
+
+    ctx.save();
+    ctx.strokeStyle = "rgba(255,255,255,0.85)";
+    ctx.lineWidth = 2;
+    ctx.setLineDash([6,6]);
+    ctx.beginPath();
+    ctx.moveTo(p1.sx, p1.sy);
+    ctx.lineTo(p2.sx, p2.sy);
+    ctx.stroke();
+
+    ctx.setLineDash([]);
+    ctx.fillStyle = "rgba(174,243,89,0.95)";
+    ctx.beginPath(); ctx.arc(p1.sx, p1.sy, 5, 0, Math.PI*2); ctx.fill();
+    ctx.beginPath(); ctx.arc(p2.sx, p2.sy, 5, 0, Math.PI*2); ctx.fill();
+
+    if (m.p2){
+      const d = dist(m.p1.x, m.p1.y, m.p2.x, m.p2.y);
+      const midx = (p1.sx + p2.sx)/2;
+      const midy = (p1.sy + p2.sy)/2;
+
+      const label = `${d.toFixed(2)} m`;
+      ctx.font = "12px system-ui, -apple-system, Segoe UI, Roboto, Arial";
+      const w = ctx.measureText(label).width + 14;
+
+      ctx.fillStyle = "rgba(0,0,0,0.50)";
+      ctx.strokeStyle = "rgba(255,255,255,0.14)";
+      ctx.lineWidth = 1;
+
+      if (ctx.roundRect){
+        ctx.beginPath();
+        ctx.roundRect(midx - w/2, midy - 12, w, 22, 10);
+        ctx.fill();
+        ctx.stroke();
+      } else {
+        ctx.fillRect(midx - w/2, midy - 12, w, 22);
+      }
+
+      ctx.fillStyle = "rgba(255,255,255,0.92)";
+      ctx.fillText(label, midx - w/2 + 7, midy + 5);
+    }
+    ctx.restore();
+  }
+
+  function drawMarker(wx, wy, label, isSelected, kind){
+    const p = worldToScreen(wx, wy);
+
+    // kind influences icon color
+    let core = "rgba(174,243,89,0.95)";
+    if (kind === "doorbell") core = "rgba(255,211,106,0.95)";
+    if (kind === "intercom") core = "rgba(125,255,178,0.95)";
+    if (kind === "ap") core = "rgba(174,243,89,0.95)";
+
+    ctx.save();
+    ctx.beginPath();
+    ctx.fillStyle = "rgba(0,0,0,0.45)";
+    ctx.arc(p.sx, p.sy, 12, 0, Math.PI*2);
+    ctx.fill();
+
+    ctx.strokeStyle = isSelected ? "rgba(174,243,89,0.95)" : "rgba(255,255,255,0.28)";
+    ctx.lineWidth = isSelected ? 3 : 2;
+    ctx.stroke();
+
+    ctx.fillStyle = core;
+    ctx.beginPath();
+    ctx.arc(p.sx, p.sy, 6, 0, Math.PI*2);
+    ctx.fill();
+
+    ctx.fillStyle = "rgba(255,255,255,0.90)";
+    ctx.font = "12px system-ui, -apple-system, Segoe UI, Roboto, Arial";
+    ctx.fillText(label, p.sx + 16, p.sy + 4);
+    ctx.restore();
+  }
+
+  function selectedPoint(){
+    if (state.selected === "ap") return { label: "Wi-Fi AP", x: state.ap.x, y: state.ap.y };
+
+    if (typeof state.selected === "object" && state.selected.devId){
+      const d = state.devices.find(x => x.id === state.selected.devId);
+      if (d) return { label: typeLabel(d.type), x: d.x, y: d.y };
+    }
+
+    // default to first device
+    const d0 = state.devices[0];
+    return { label: d0 ? typeLabel(d0.type) : "—", x: d0 ? d0.x : 0, y: d0 ? d0.y : 0 };
+  }
+
+  function updateKPIs(){
+    const sel = selectedPoint();
+    selLabel.textContent = `Selected: ${sel.label}`;
+
+    // RSSI only meaningful for devices (not AP); if AP selected, show RSSI at first device
+    let probe = sel;
+    if (state.selected === "ap" && state.devices[0]){
+      probe = { ...state.devices[0], label: typeLabel(state.devices[0].type) };
+    }
+
+    const rssi = estimateRSSIAt(probe.x, probe.y);
+    selRssi.textContent = `${rssi.toFixed(1)} dBm`;
+
+    const st = statusFor(rssi);
+    selStatus.textContent = st.label;
+    selStatus.style.color = st.color;
+    selRssi.style.color = st.color;
+  }
+
+  function draw(){
+    clear();
+    drawHeatmap();
+    drawGrid();
+    drawRings();
+    drawObstacles();
+    drawMeasure();
+
+    // AP
+    const apSel = (state.selected === "ap");
+    drawMarker(state.ap.x, state.ap.y, "Wi-Fi AP", apSel, "ap");
+
+    // Devices
+    for (const d of state.devices){
+      const isSel = (typeof state.selected === "object" && state.selected.devId === d.id);
+      drawMarker(d.x, d.y, typeLabel(d.type), isSel, d.type);
+    }
+
+    updateKPIs();
+  }
+
+  // ---------- Templates ----------
+  function makeObstacle(type, x,y,w,h){
+    return { id: state.nextObsId++, type, x, y, w, h, a: 0 };
+  }
+
+  function applySelectedTemplate(){
+    state.siteW = clamp(parseFloat(siteW.value) || 30, 6, 200);
+    state.siteH = clamp(parseFloat(siteH.value) || 20, 6, 200);
+
+    state.cam.x = 0; state.cam.y = 0; state.cam.zoom = 1.0;
+
+    state.obstacles = [];
+    state.selected = "ap";
+    state.measure = { active:false, p1:null, p2:null };
+    measureBtn.textContent = "Measure";
+
+    // marker defaults
+    state.ap.x = snapVal(Math.max(2, Math.min(state.siteW-2, state.siteW * 0.20)));
+    state.ap.y = snapVal(Math.max(2, Math.min(state.siteH-2, state.siteH * 0.50)));
+
+    // reset devices: keep 1 gate by default
+    state.devices = [
+      { id: 1, type:"gate", x: snapVal(Math.max(2, Math.min(state.siteW-2, state.siteW * 0.80))), y: snapVal(Math.max(2, Math.min(state.siteH-2, state.siteH * 0.50))) }
+    ];
+    state.nextDevId = 2;
+
+    const t = template.value;
+
+    if (t === "swing"){
+      state.obstacles.push(makeObstacle("building", state.siteW*0.35, state.siteH*0.10, state.siteW*0.30, state.siteH*0.25));
+      state.obstacles.push(makeObstacle("wall", state.siteW*0.05, state.siteH*0.45, state.siteW*0.18, 0.4));
+      state.obstacles.push(makeObstacle("wall", state.siteW*0.77, state.siteH*0.45, state.siteW*0.18, 0.4));
+      state.ap.x = snapVal(state.siteW * 0.28); state.ap.y = snapVal(state.siteH * 0.30);
+      state.devices[0].x = snapVal(state.siteW * 0.90); state.devices[0].y = snapVal(state.siteH * 0.50);
+    }
+    if (t === "sliding"){
+      state.obstacles.push(makeObstacle("wall", state.siteW*0.10, state.siteH*0.60, state.siteW*0.80, 0.35));
+      state.obstacles.push(makeObstacle("building", state.siteW*0.10, state.siteH*0.12, state.siteW*0.25, state.siteH*0.25));
+      state.ap.x = snapVal(state.siteW * 0.25); state.ap.y = snapVal(state.siteH * 0.25);
+      state.devices[0].x = snapVal(state.siteW * 0.86); state.devices[0].y = snapVal(state.siteH * 0.55);
+    }
+    if (t === "barrier"){
+      state.obstacles.push(makeObstacle("metal", state.siteW*0.55, state.siteH*0.42, state.siteW*0.20, state.siteH*0.16));
+      state.obstacles.push(makeObstacle("building", state.siteW*0.18, state.siteH*0.18, state.siteW*0.20, state.siteH*0.18));
+      state.ap.x = snapVal(state.siteW * 0.25); state.ap.y = snapVal(state.siteH * 0.25);
+      state.devices[0].x = snapVal(state.siteW * 0.70); state.devices[0].y = snapVal(state.siteH * 0.50);
+    }
+
+    draw();
+  }
+
+  // ---------- Hit tests ----------
+  function hitMarker(mx,my, wx, wy){
+    const p = worldToScreen(wx, wy);
+    return dist(mx,my,p.sx,p.sy) <= 16;
+  }
+
+  function hitDevice(mx,my){
+    for (let i=state.devices.length-1; i>=0; i--){
+      const d = state.devices[i];
+      if (hitMarker(mx,my,d.x,d.y)) return d;
+    }
+    return null;
+  }
+
+  function hitObstacle(mx,my){
+    const w = screenToWorld(mx, my);
+    const wx = w.wx, wy = w.wy;
+
+    for (let i=state.obstacles.length-1; i>=0; i--){
+      const ob = state.obstacles[i];
+      const cx = ob.x + ob.w/2;
+      const cy = ob.y + ob.h/2;
+
+      const ang = -((ob.a||0) * Math.PI/180);
+      const dx = wx - cx;
+      const dy = wy - cy;
+      const lx = dx * Math.cos(ang) - dy * Math.sin(ang);
+      const ly = dx * Math.sin(ang) + dy * Math.cos(ang);
+
+      if (Math.abs(lx) <= ob.w/2 && Math.abs(ly) <= ob.h/2) return ob;
+    }
+    return null;
+  }
+
+  function hitObstacleCorner(mx,my, ob){
+    if ((ob.a||0) !== 0) return null;
+    const p = worldToScreen(ob.x, ob.y);
+    const sW = ob.w * p.scale, sH = ob.h * p.scale;
+    const corners = [
+      { name:"br", x:p.sx + sW, y:p.sy + sH },
+      { name:"tr", x:p.sx + sW, y:p.sy },
+      { name:"bl", x:p.sx,      y:p.sy + sH },
+      { name:"tl", x:p.sx,      y:p.sy },
+    ];
+    for (const c0 of corners){
+      if (dist(mx,my,c0.x,c0.y) <= 10) return c0.name;
+    }
+    return null;
+  }
+
+  // ---------- Interaction ----------
+  let dragging = null; // "ap" | {devId} | {obsId} | "pan" | {type:"resize", obsId, corner}
+  let last = { x:0, y:0 };
+
+  c.addEventListener("mousedown", (e) => {
+    const rect = c.getBoundingClientRect();
+    const mx = e.clientX - rect.left;
+    const my = e.clientY - rect.top;
+    last.x = mx; last.y = my;
+
+    // Measure mode
+    if (state.measure.active && !e.shiftKey){
+      const ob = hitObstacle(mx,my);
+      let p;
+      if (ob){
+        p = { x: ob.x + ob.w/2, y: ob.y + ob.h/2 };
+      } else {
+        const w = screenToWorld(mx,my);
+        p = { x: w.wx, y: w.wy };
+      }
+      p = snapPoint(p);
+
+      if (!state.measure.p1 || (state.measure.p1 && state.measure.p2)){
+        state.measure.p1 = p;
+        state.measure.p2 = null;
+      } else {
+        state.measure.p2 = p;
+      }
+      draw();
+      return;
+    }
+
+    if (e.shiftKey){
+      dragging = "pan";
+      return;
+    }
+
+    if (hitMarker(mx,my,state.ap.x,state.ap.y)){
+      dragging = "ap";
+      state.selected = "ap";
+      draw();
+      return;
+    }
+
+    const dev = hitDevice(mx,my);
+    if (dev){
+      dragging = { devId: dev.id };
+      state.selected = { devId: dev.id };
+      draw();
+      return;
+    }
+
+    const ob = hitObstacle(mx,my);
+    if (ob){
+      state.selected = { obsId: ob.id };
+      const corner = hitObstacleCorner(mx,my,ob);
+      if (corner){
+        dragging = { type:"resize", obsId: ob.id, corner };
+      } else {
+        dragging = { obsId: ob.id };
+      }
+      draw();
+      return;
+    }
+
+    state.selected = "ap";
+    draw();
+  });
+
+  c.addEventListener("mousemove", (e) => {
+    if (!dragging) return;
+    const rect = c.getBoundingClientRect();
+    const mx = e.clientX - rect.left;
+    const my = e.clientY - rect.top;
+
+    const dx = mx - last.x;
+    const dy = my - last.y;
+
+    if (dragging === "pan"){
+      state.cam.x += dx;
+      state.cam.y += dy;
+      last.x = mx; last.y = my;
+      draw();
+      return;
+    }
+
+    const a = screenToWorld(last.x, last.y);
+    const b = screenToWorld(mx, my);
+    const wdx = b.wx - a.wx;
+    const wdy = b.wy - a.wy;
+
+    if (dragging === "ap"){
+      state.ap.x = clamp(snapVal(state.ap.x + wdx), 0, state.siteW);
+      state.ap.y = clamp(snapVal(state.ap.y + wdy), 0, state.siteH);
+    } else if (dragging.devId){
+      const d = state.devices.find(x => x.id === dragging.devId);
+      if (d){
+        d.x = clamp(snapVal(d.x + wdx), 0, state.siteW);
+        d.y = clamp(snapVal(d.y + wdy), 0, state.siteH);
+      }
+    } else if (dragging.obsId && !dragging.type){
+      const ob = state.obstacles.find(o => o.id === dragging.obsId);
+      if (ob){
+        ob.x = clamp(snapVal(ob.x + wdx), 0, state.siteW - ob.w);
+        ob.y = clamp(snapVal(ob.y + wdy), 0, state.siteH - ob.h);
+      }
+    } else if (dragging.type === "resize"){
+      const ob = state.obstacles.find(o => o.id === dragging.obsId);
+      if (ob){
+        const min = 0.2;
+        if (dragging.corner.includes("r")){
+          ob.w = clamp(snapVal(ob.w + wdx), min, state.siteW - ob.x);
+        }
+        if (dragging.corner.includes("b")){
+          ob.h = clamp(snapVal(ob.h + wdy), min, state.siteH - ob.y);
+        }
+        if (dragging.corner.includes("l")){
+          ob.x = clamp(snapVal(ob.x + wdx), 0, ob.x + ob.w - min);
+          ob.w = clamp(snapVal(ob.w - wdx), min, state.siteW - ob.x);
+        }
+        if (dragging.corner.includes("t")){
+          ob.y = clamp(snapVal(ob.y + wdy), 0, ob.y + ob.h - min);
+          ob.h = clamp(snapVal(ob.h - wdy), min, state.siteH - ob.y);
+        }
+      }
+    }
+
+    last.x = mx; last.y = my;
+    draw();
+  });
+
+  window.addEventListener("mouseup", () => dragging = null);
+
+  c.addEventListener("wheel", (e) => {
+    e.preventDefault();
+    const delta = Math.sign(e.deltaY);
+    const z = state.cam.zoom;
+    state.cam.zoom = clamp(z * (delta > 0 ? 0.92 : 1.08), 0.5, 3.0);
+    draw();
+  }, { passive:false });
+
+  window.addEventListener("keydown", (e) => {
+    if (e.key === "Delete" || e.key === "Backspace"){
+      if (typeof state.selected === "object" && state.selected.obsId){
+        state.obstacles = state.obstacles.filter(o => o.id !== state.selected.obsId);
+        state.selected = "ap";
+        draw();
+      }
+    }
+
+    if (["ArrowUp","ArrowDown","ArrowLeft","ArrowRight"].includes(e.key)){
+      if (state.measure.active) return;
+      e.preventDefault();
+      const map = { ArrowUp:[0,-1], ArrowDown:[0,1], ArrowLeft:[-1,0], ArrowRight:[1,0] };
+      const [dx,dy] = map[e.key];
+      nudge(dx,dy);
+    }
+
+    if (e.key === "Escape"){
+      if (state.measure.active){
+        state.measure.active = false;
+        measureBtn.textContent = "Measure";
+        draw();
+      }
+    }
+  });
+
+  function nudge(dx, dy){
+    const step = state.snapOn ? state.snapStep : 0.1;
+
+    if (state.selected === "ap"){
+      state.ap.x = clamp(snapVal(state.ap.x + dx*step), 0, state.siteW);
+      state.ap.y = clamp(snapVal(state.ap.y + dy*step), 0, state.siteH);
+    } else if (typeof state.selected === "object" && state.selected.devId){
+      const d = state.devices.find(x => x.id === state.selected.devId);
+      if (d){
+        d.x = clamp(snapVal(d.x + dx*step), 0, state.siteW);
+        d.y = clamp(snapVal(d.y + dy*step), 0, state.siteH);
+      }
+    } else if (typeof state.selected === "object" && state.selected.obsId){
+      const ob = state.obstacles.find(o => o.id === state.selected.obsId);
+      if (ob){
+        ob.x = clamp(snapVal(ob.x + dx*step), 0, state.siteW - ob.w);
+        ob.y = clamp(snapVal(ob.y + dy*step), 0, state.siteH - ob.h);
+      }
+    }
+    draw();
+  }
+
+  function rotateSelected(delta){
+    if (!(typeof state.selected === "object" && state.selected.obsId)) return;
+    const ob = state.obstacles.find(o => o.id === state.selected.obsId);
+    if (!ob) return;
+    ob.a = ((ob.a || 0) + delta) % 360;
+    if (ob.a < 0) ob.a += 360;
+    draw();
+  }
+
+  // ---------- Buttons ----------
+  applyTemplate.addEventListener("click", applySelectedTemplate);
+
+  resetAll.addEventListener("click", () => {
+    template.value = "blank";
+    siteW.value = 30;
+    siteH.value = 20;
+    band.value = "24";
+    tx1m.value = -30;
+    ple.value = 2.4;
+    target.value = -70;
+    res.value = 6;
+
+    state.showHeat = true;
+    state.showRings = true;
+
+    snapOnSel.value = "1";
+    snapStepSel.value = "0.25";
+    state.snapOn = true;
+    state.snapStep = 0.25;
+
+    applySelectedTemplate();
+  });
+
+  addDevice.addEventListener("click", () => {
+    const t = devType.value;
+    const x = clamp(snapVal(state.siteW*0.65), 0, state.siteW);
+    const y = clamp(snapVal(state.siteH*0.35), 0, state.siteH);
+
+    const d = { id: state.nextDevId++, type: t, x, y };
+    state.devices.push(d);
+    state.selected = { devId: d.id };
+    draw();
+  });
+
+  clearDevices.addEventListener("click", () => {
+    state.devices = [{ id: 1, type:"gate", x: snapVal(state.siteW*0.80), y: snapVal(state.siteH*0.50) }];
+    state.nextDevId = 2;
+    state.selected = { devId: 1 };
+    draw();
+  });
+
+  addObstacle.addEventListener("click", () => {
+    const w = clamp(parseFloat(obW.value) || 2, 0.2, state.siteW);
+    const h = clamp(parseFloat(obH.value) || 0.4, 0.2, state.siteH);
+    const type = obType.value;
+
+    const x = clamp(snapVal(state.siteW*0.5 - w/2), 0, state.siteW - w);
+    const y = clamp(snapVal(state.siteH*0.5 - h/2), 0, state.siteH - h);
+
+    state.obstacles.push(makeObstacle(type, x, y, w, h));
+    state.selected = { obsId: state.obstacles[state.obstacles.length-1].id };
+    draw();
+  });
+
+  clearObstacles.addEventListener("click", () => {
+    state.obstacles = [];
+    state.selected = "ap";
+    draw();
+  });
+
+  toggleRings.addEventListener("click", () => {
+    state.showRings = !state.showRings;
+    draw();
+  });
+
+  toggleHeat.addEventListener("click", () => {
+    state.showHeat = !state.showHeat;
+    draw();
+  });
+
+  exportPng.addEventListener("click", () => {
+    const a = document.createElement("a");
+    a.download = "willexos-wifi-coverage.png";
+    a.href = c.toDataURL("image/png");
+    a.click();
+  });
+
+  snapOnSel.addEventListener("change", () => { state.snapOn = snapOnSel.value === "1"; draw(); });
+  snapStepSel.addEventListener("change", () => { state.snapStep = parseFloat(snapStepSel.value); draw(); });
+
+  nudgeUp.addEventListener("click", () => nudge(0,-1));
+  nudgeDown.addEventListener("click", () => nudge(0, 1));
+  nudgeLeft.addEventListener("click", () => nudge(-1,0));
+  nudgeRight.addEventListener("click", () => nudge(1, 0));
+
+  rotLeft.addEventListener("click", () => rotateSelected(-15));
+  rotRight.addEventListener("click", () => rotateSelected(15));
+  rotZero.addEventListener("click", () => {
+    if (!(typeof state.selected === "object" && state.selected.obsId)) return;
+    const ob = state.obstacles.find(o => o.id === state.selected.obsId);
+    if (!ob) return;
+    ob.a = 0;
+    draw();
+  });
+
+  measureBtn.addEventListener("click", () => {
+    state.measure.active = !state.measure.active;
+    state.measure.p1 = null;
+    state.measure.p2 = null;
+    measureBtn.textContent = state.measure.active ? "Measuring…" : "Measure";
+    draw();
+  });
+
+  measureClear.addEventListener("click", () => {
+    state.measure.p1 = null;
+    state.measure.p2 = null;
+    state.measure.active = false;
+    measureBtn.textContent = "Measure";
+    draw();
+  });
+
+  // Re-render on model changes
+  [band, tx1m, ple, target, res].forEach(el => el.addEventListener("input", draw));
+
+  // ---------- Mobile sheet: re-home the panels ----------
+  (function mobileUI(){
+    const sheet = document.getElementById("mobileSheet");
+    const backdrop = document.getElementById("mobileBackdrop");
+    const closeBtn = document.getElementById("sheetClose");
+    const title = document.getElementById("sheetTitle");
+
+    const paneTemplate = document.getElementById("pane-template");
+    const paneWifi = document.getElementById("pane-wifi");
+    const paneSite = document.getElementById("pane-site");
+    const paneExport = document.getElementById("pane-export");
+
+    const panels = document.querySelectorAll(".tool-panel.card");
+    if (panels.length !== 2) return;
+
+    const leftPanel = panels[0];  // template + wifi
+    const rightPanel = panels[1]; // devices + controls + obstacles + export
+
+    const leftHome = leftPanel;
+    const rightHome = rightPanel;
+
+    function sections(panel){ return [...panel.querySelectorAll(":scope > h3, :scope > .field, :scope > .row2, :scope > .btnrow, :scope > .hint, :scope > .kpi, :scope > .legend, :scope > div[style]")]; }
+
+    // Create simple buckets by taking blocks between each H3
+    function bucketize(panel){
+      const nodes = sections(panel);
+      const buckets = [];
+      let cur = [];
+      for (const n of nodes){
+        if (n.tagName === "H3"){
+          if (cur.length) buckets.push(cur);
+          cur = [n];
+        } else {
+          cur.push(n);
+        }
+      }
+      if (cur.length) buckets.push(cur);
+      return buckets;
+    }
+
+    function clearPane(p){ while (p.firstChild) p.removeChild(p.firstChild); }
+
+    function moveToMobile(){
+      // already moved?
+      if (!leftHome.querySelector("h3") && !rightHome.querySelector("h3")) return;
+
+      clearPane(paneTemplate);
+      clearPane(paneWifi);
+      clearPane(paneSite);
+      clearPane(paneExport);
+
+      // Left panel buckets: [Template], [Wi-Fi model]
+      const lb = bucketize(leftHome);
+      if (lb[0]) lb[0].forEach(n => paneTemplate.appendChild(n));
+      if (lb[1]) lb[1].forEach(n => paneWifi.appendChild(n));
+
+      // Right panel buckets: [Devices], [Controls], [Obstacles], [Export]
+      const rb = bucketize(rightHome);
+      if (rb[0]) rb[0].forEach(n => paneSite.appendChild(n));     // Devices
+      if (rb[1]) rb[1].forEach(n => paneSite.appendChild(n));     // Controls
+      if (rb[2]) rb[2].forEach(n => paneSite.appendChild(n));     // Obstacles
+      if (rb[3]) rb[3].forEach(n => paneExport.appendChild(n));   // Export
+    }
+
+    function moveToDesktop(){
+      // Return anything we moved back into panels (keep original order by appending)
+      [...paneTemplate.childNodes].forEach(n => leftHome.appendChild(n));
+      [...paneWifi.childNodes].forEach(n => leftHome.appendChild(n));
+      [...paneSite.childNodes].forEach(n => rightHome.appendChild(n));
+      [...paneExport.childNodes].forEach(n => rightHome.appendChild(n));
+    }
+
+    const mq = window.matchMedia("(max-width: 980px)");
+    function syncLayout(){ mq.matches ? moveToMobile() : moveToDesktop(); }
+
+    function openSheet(paneName){
+      sheet.classList.add("open");
+      backdrop.classList.add("open");
+      sheet.setAttribute("aria-hidden","false");
+      setPane(paneName);
+    }
+    function closeSheet(){
+      sheet.classList.remove("open");
+      backdrop.classList.remove("open");
+      sheet.setAttribute("aria-hidden","true");
+    }
+
+    function setPane(name){
+      document.querySelectorAll(".sheet-tab").forEach(t => {
+        t.classList.toggle("active", t.dataset.pane === name);
+      });
+      ["template","wifi","site","export"].forEach(p => {
+        const el = document.getElementById("pane-" + p);
+        el.classList.toggle("active", p === name);
+      });
+      title.textContent =
+        name === "template" ? "Template" :
+        name === "wifi" ? "Wi-Fi" :
+        name === "site" ? "Site" : "Export";
+    }
+
+    document.getElementById("mobileBar")?.addEventListener("click", (e) => {
+      const btn = e.target.closest("button[data-open]");
+      if (!btn) return;
+      openSheet(btn.dataset.open);
+    });
+    document.getElementById("sheetTabs")?.addEventListener("click", (e) => {
+      const btn = e.target.closest("button[data-pane]");
+      if (!btn) return;
+      setPane(btn.dataset.pane);
+    });
+
+    closeBtn.addEventListener("click", closeSheet);
+    backdrop.addEventListener("click", closeSheet);
+    window.addEventListener("keydown", (e) => { if (e.key === "Escape") closeSheet(); });
+
+    syncLayout();
+    if (mq.addEventListener) mq.addEventListener("change", syncLayout);
+    else mq.addListener(syncLayout);
+  })();
+
+  // ---------- Init ----------
+  state.snapOn = (snapOnSel.value === "1");
+  state.snapStep = parseFloat(snapStepSel.value);
+
+  resize();
+  applySelectedTemplate();
+})();
+</script>
+</body>
+</html>
